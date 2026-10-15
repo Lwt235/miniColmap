@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mini-colmap-learning"
+version = "0.1.0"
+description = "An incremental sparse SfM learning project with explicit student implementation tasks"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26,<3", "opencv-python-headless>=4.8,<5", "scipy>=1.11,<2", "einx>=0.4.3,<0.5"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8,<10"]
+
+[project.scripts]
+mini-colmap = "minicolmap.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra"
+
