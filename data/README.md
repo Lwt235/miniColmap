@@ -1,5 +1,9 @@
 # 输入数据
 
+已配置真实照片数据：`middlebury_temple_ring/dataset.json`，默认8张连续视角，完整47张图像均已下载。
+内参来自官方标定，发布者已去径向畸变。运行方法、子集和实测结果见
+[Middlebury快速开始](../docs/09-Middlebury数据集快速开始.md)。
+
 合成几何夹具：`python -m minicolmap synthetic --output data/synthetic.npz`。
 它有真实相机和点，以及已知对应的二维观测；只验证几何，不能验证 SIFT。
 

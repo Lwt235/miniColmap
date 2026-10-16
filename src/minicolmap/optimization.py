@@ -1,9 +1,114 @@
-"""Ready solver wrapper. B1 residuals and map management remain learner implementations."""
+"""Nonlinear refinement of the initial pair and the incremental map."""
+from typing import TypedDict
+
 import numpy as np
+from numpy.typing import ArrayLike, NDArray
 
 from .ba import bundle_residuals
 from .metrics import reconstruction_summary
 from .models import Pose, validate_reconstruction
+
+
+class OptimizationReport(TypedDict):
+    accepted: bool
+    solver_success: bool
+    nfev: int
+    before_mean_px: float
+    candidate_mean_px: float | None
+    message: str
+    rejection_reason: str | None
+
+
+def refine_two_view(
+    R: ArrayLike, t: ArrayLike, points: ArrayLike,
+    K1: ArrayLike, K2: ArrayLike, pixels1: ArrayLike, pixels2: ArrayLike,
+    max_nfev: int = 100,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64], OptimizationReport]:
+    """Refine a G8/DLT seed using only its verified pixel correspondences.
+
+    Fix camera 1 to (I,0) and ||t2||=1. Optimize r2 (3), the direction of
+    t2 in a local tangent chart (2), and all points (3N), with separate K1/K2.
+    Thus the two-view pose can improve without the monocular scale gauge.
+    Use squared pixel residuals on the upstream RANSAC inliers; M1 still
+    enforces depth, angle, and per-observation error after refinement.
+    Invalid/worsening candidates return copies of the original seed.
+    """
+    from scipy.optimize import least_squares
+    from scipy.sparse import lil_matrix
+    from scipy.spatial.transform import Rotation
+    from .geometry import _array, _correspondences, _intrinsics
+
+    R = _array(R, 'R', (3, 3)).copy()
+    t = _array(t, 't', (3,)).copy()
+    points = _array(points, 'points', (None, 3)).copy()
+    K1, K2 = _intrinsics(K1, 'K1'), _intrinsics(K2, 'K2')
+    pixels1, pixels2 = _correspondences(pixels1, pixels2, minimum=8)
+    Pose(R, t)  # Check the rotation before Rotation.from_matrix can orthogonalize it.
+    if len(points) != len(pixels1) or not np.isclose(np.linalg.norm(t), 1., atol=1e-8):
+        raise ValueError('Two-view refinement needs aligned points and unit translation')
+    if isinstance(max_nfev, bool) or not isinstance(max_nfev, int) or max_nfev < 1:
+        raise ValueError('max_nfev must be a positive integer')
+
+    # This chart has two direction DOFs and always preserves the unit baseline.
+    tangent = np.linalg.svd(t[None, :], full_matrices=True)[2][1:].T
+    x0 = np.r_[Rotation.from_matrix(R).as_rotvec(), 0., 0., points.ravel()]
+
+    def unpack(x):
+        rotation = Rotation.from_rotvec(x[:3]).as_matrix()
+        direction = t + tangent @ x[3:5]
+        return rotation, direction / np.linalg.norm(direction), x[5:].reshape(-1, 3)
+
+    def residual(x):
+        rotation, direction, xyz = unpack(x)
+        camera2 = xyz @ rotation.T + direction
+        if np.any(np.abs(xyz[:, 2]) < 1e-12) or np.any(np.abs(camera2[:, 2]) < 1e-12):
+            raise ValueError('Two-view trial has near-zero depth')
+        h1, h2 = xyz @ K1.T, camera2 @ K2.T
+        values = np.column_stack((h1[:, :2] / h1[:, 2:] - pixels1,
+                                  h2[:, :2] / h2[:, 2:] - pixels2)).ravel()
+        if not np.isfinite(values).all():
+            raise ValueError('Two-view trial has nonfinite projections')
+        return values
+
+    def positive(rotation, direction, xyz):
+        return np.all(xyz[:, 2] > 1e-12) and np.all((xyz @ rotation.T + direction)[:, 2] > 1e-12)
+
+    if not positive(R, t, points):
+        raise ValueError('Two-view input needs positive depth in both cameras')
+    before_values = residual(x0)
+    before_mean = float(np.linalg.norm(before_values.reshape(-1, 2), axis=1).mean())
+    report: OptimizationReport = {
+        'accepted': False, 'solver_success': False, 'nfev': 0,
+        'before_mean_px': before_mean, 'candidate_mean_px': None,
+        'message': '', 'rejection_reason': None,
+    }
+    sparsity = lil_matrix((4 * len(points), len(x0)), dtype=np.int8)
+    for index in range(len(points)):
+        sparsity[4 * index:4 * index + 4, 5 + 3 * index:8 + 3 * index] = 1
+        sparsity[4 * index + 2:4 * index + 4, :5] = 1
+    try:
+        result = least_squares(residual, x0, method='trf', loss='linear',
+                               jac_sparsity=sparsity.tocsr(), x_scale='jac',
+                               tr_options={'atol': 1e-12, 'btol': 1e-12},
+                               max_nfev=max_nfev)
+        report.update(solver_success=bool(result.success), nfev=int(result.nfev),
+                      message=str(result.message))
+        solution = np.asarray(result.x, dtype=np.float64)
+        if solution.shape != x0.shape or not np.isfinite(solution).all():
+            raise ValueError('Two-view optimizer returned invalid parameters')
+        rotation, direction, xyz = unpack(solution)
+        values = residual(solution)
+        candidate_mean = float(np.linalg.norm(values.reshape(-1, 2), axis=1).mean())
+        report['candidate_mean_px'] = candidate_mean
+        if not positive(rotation, direction, xyz):
+            raise ValueError('Two-view candidate has nonpositive depth')
+        if candidate_mean > before_mean + 1e-9 or values @ values > before_values @ before_values + 1e-9:
+            raise ValueError('Two-view candidate worsened reprojection error')
+    except (ValueError, FloatingPointError, OverflowError) as exc:
+        report['rejection_reason'] = str(exc)
+        return R, t, points, report
+    report['accepted'] = True
+    return rotation, direction, xyz.copy(), report
 
 
 def refine_model(model, anchor_image_ids, settings):
@@ -87,7 +192,8 @@ def refine_model(model, anchor_image_ids, settings):
                 'rejection_reason': rejection_reason}
 
     try:
-        result = least_squares(residual, x0, method='trf', jac_sparsity=sparsity,
+        result = least_squares(residual, x0, method='trf', jac_sparsity=sparsity, x_scale='jac',
+                               tr_options={'atol': 1e-10, 'btol': 1e-10},
                                loss=settings['loss'], f_scale=settings['f_scale'],
                                max_nfev=settings['max_nfev'])
     except (ValueError, FloatingPointError, OverflowError) as exc:

@@ -10,6 +10,10 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description='Mini-COLMAP learning scaffold')
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Check actual dependency imports')
+    ui = sub.add_parser('ui', help='Open the local reconstruction and 3D visualization workbench')
+    ui.add_argument('--port', type=int, default=8765)
+    ui.add_argument('--no-browser', action='store_true', help='Start without opening a browser tab')
+    ui.add_argument('--project', type=Path, help='Project root containing data/ and outputs/')
     synthetic = sub.add_parser('synthetic', help='Generate a geometry fixture with known correspondences')
     synthetic.add_argument('--output', type=Path, default=Path('data/synthetic.npz'))
     synthetic.add_argument('--seed', type=int, default=0)
@@ -28,6 +32,12 @@ def main(argv=None):
     export.add_argument('--output', type=Path, required=True)
     args = parser.parse_args(argv)
     try:
+        if args.command == 'ui':
+            if not 1 <= args.port <= 65535:
+                raise ValueError('--port must be between 1 and 65535')
+            from .ui import run as run_ui
+            run_ui(port=args.port, open_browser=not args.no_browser, project_root=args.project)
+            return 0
         if args.command == 'doctor':
             missing = []
             for name in ('numpy', 'cv2', 'scipy', 'pytest'):

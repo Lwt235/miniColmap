@@ -153,7 +153,7 @@ def test_m1_unusable_baseline_is_rejected_without_partial_map():
 
 
 def test_m2_failed_best_candidate_does_not_prevent_next_registration(monkeypatch):
-    scene, ids, model, tracks, pairs, _, settings = _fixture()
+    scene, ids, model, tracks, _, _, settings = _fixture()
     _known_registered_input(scene, ids, model, point_count=36)
     # Image 27 has 36 mapped tracks; image 41 has 32. Force the first PnP
     # attempt to fail, then use the actual library PnP for the second image.
@@ -169,7 +169,7 @@ def test_m2_failed_best_candidate_does_not_prevent_next_registration(monkeypatch
 
     monkeypatch.setattr(backends, "solve_pnp", one_failed_pnp)
     old_points = {key: point.xyz.copy() for key, point in model.points.items()}
-    assert register_next_image(model, pairs, tracks, settings) is True
+    assert register_next_image(model, tracks, settings) is True
     assert attempts == [36, 32]
     assert set(model.poses) == {ids[0], ids[1], ids[3]}
     assert len(model.points) == 36
@@ -181,11 +181,11 @@ def test_m2_failed_best_candidate_does_not_prevent_next_registration(monkeypatch
 
 
 def test_m2_no_usable_2d3d_support_returns_false_and_preserves_map():
-    scene, ids, model, tracks, pairs, _, settings = _fixture()
+    scene, ids, model, tracks, _, _, settings = _fixture()
     _known_registered_input(scene, ids, model, point_count=36)
     tracks = [track[:2] for track in tracks]
     before = _signature(model)
-    assert register_next_image(model, pairs, tracks, settings) is False
+    assert register_next_image(model, tracks, settings) is False
     assert _signature(model) == before
 
 

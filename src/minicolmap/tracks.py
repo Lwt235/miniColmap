@@ -4,9 +4,51 @@ from __future__ import annotations
 
 import numpy as np
 from numpy.typing import NDArray
+from typing import TypeVar, Generic, Hashable, TypeAlias
 
-Observation = tuple[int, int]  # (image_id, feature_index)
-Track = tuple[Observation, ...]
+
+Observation: TypeAlias = tuple[int, int]  # (image_id, zero-based keypoint_index)
+Track: TypeAlias = tuple[Observation, ...]  # Same scene point; at most one observation per image.
+
+
+T = TypeVar("T", bound=Hashable)
+class DSU(Generic[T]):
+    def __init__(self):
+        self.parent: dict[T, T] = {}
+        self.size: dict[T, int] = {}
+
+    def find(self, x: T) -> T:
+        if x not in self.parent:
+            self.parent[x] = x
+            self.size[x] = 1
+
+        root = x
+        while self.parent[root] != root:
+            root = self.parent[root]
+
+        while self.parent[x] != root:
+            nxt = self.parent[x]
+            self.parent[x] = root
+            x = nxt
+
+        return root
+
+    def union(self, a: T, b: T) -> bool:
+        ra = self.find(a)
+        rb = self.find(b)
+        if ra != rb:
+            if self.size[ra] < self.size[rb]:
+                ra, rb = rb, ra
+            self.parent[rb] = ra
+            self.size[ra] += self.size[rb]
+            return True
+        return False
+
+    def connected(self, a: T, b: T) -> bool:
+        return self.find(a) == self.find(b)
+
+    def get_size(self, x: T) -> int:
+        return self.size[self.find(x)]
 
 
 def build_tracks(pair_matches: dict[tuple[int, int], NDArray]) -> list[Track]:
@@ -38,4 +80,30 @@ def build_tracks(pair_matches: dict[tuple[int, int], NDArray]) -> list[Track]:
         if not np.issubdtype(matches.dtype, np.integer) or np.any(matches < 0):
             raise ValueError("feature indices must be nonnegative integers")
     # TODO T1: graph/union-find components -> detect conflict -> sort tracks.
-    raise NotImplementedError("TODO T1: implement conflict-aware feature tracks")
+    dsu = DSU()
+    for (i, j), matches in pair_matches.items():
+        for fi, fj in matches:
+            a = (int(i), int(fi))
+            b = (int(j), int(fj))
+            dsu.union(a, b)
+
+    components = {}
+    for obs in dsu.parent:
+        root = dsu.find(obs)
+        components.setdefault(root, []).append(obs)
+
+    tracks = []
+    for observations in components.values():
+        image_ids = [img_id for img_id, _ in observations]
+
+        if len(image_ids) != len(set(image_ids)):
+            continue
+
+        if len(observations) < 2:
+            continue
+
+        track = tuple(sorted(observations))
+        tracks.append(track)
+
+    tracks.sort()
+    return tracks

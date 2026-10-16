@@ -1,0 +1,50 @@
+{
+  "threeDimensionalInteraction": {
+    "rotation": true,
+    "pan": true,
+    "zoom": true,
+    "cameraInspection": true,
+    "pointPicking": true,
+    "observationOverlay": true,
+    "filter": true,
+    "fullscreen": true
+  },
+  "inputPreview": true,
+  "configValidation": true,
+  "refreshReconnect": true,
+  "realReconstruction": {
+    "id": "5c541fe21a894c6a",
+    "output": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_195408_5c541f",
+    "snapshots": 9,
+    "summary": {
+      "image_count": 8,
+      "registered_images": 8,
+      "point_count": 1283,
+      "observation_count": 4250,
+      "mean_reprojection_error_px": 0.2629256569539256,
+      "median_reprojection_error_px": 0.11693635720067863,
+      "p95_reprojection_error_px": 1.0159221810482755,
+      "positive_depth_ratio": 1
+    }
+  },
+  "snapshotSwitch": true,
+  "realBARun": {
+    "id": "88052f5e9a8c4f77",
+    "output": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_195450_88052f",
+    "ba": {
+      "accepted": true,
+      "solver_success": false,
+      "nfev": 100,
+      "before_mean_px": 0.2629256569539256,
+      "candidate_mean_px": 0.17417349403811835,
+      "message": "The maximum number of function evaluations is exceeded.",
+      "rejection_reason": null
+    }
+  },
+  "baStatus": true,
+  "cancellation": true,
+  "modelImportWithoutPhotos": true,
+  "photoImport": true,
+  "pageErrors": [],
+  "status": "passed"
+}

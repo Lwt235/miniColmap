@@ -3,6 +3,54 @@ import copy
 import json
 import math
 from pathlib import Path
+from typing import Literal, TypedDict, cast
+
+
+class FeatureConfig(TypedDict):
+    """SIFT frontend options; not read directly by the mapper."""
+
+    max_features: int
+    ratio: float
+
+
+class GeometryConfig(TypedDict):
+    """Pair geometry: squared-Sampson threshold is threshold_px ** 2."""
+
+    threshold_px: float
+    max_trials: int
+    min_inliers: int  # Pair admission and M1's minimum accepted initial points.
+
+
+class MappingConfig(TypedDict):
+    """M1-M3 policy. Distances are pixels and min_angle_deg is in degrees."""
+
+    min_pnp_points: int  # Unique input pairs AND retained M2 inliers required.
+    pnp_threshold_px: float  # Passed to backends.solve_pnp, not squared.
+    min_angle_deg: float  # Convert with np.deg2rad before radian comparisons.
+    max_reprojection_px: float  # M1/M3 points and M2's added observations.
+
+
+class BundleAdjustmentConfig(TypedDict):
+    """Optimizer options; the pipeline, not the mapper, schedules BA."""
+
+    enabled: bool
+    max_nfev: int
+    loss: Literal['linear', 'huber', 'soft_l1']
+    f_scale: float
+
+
+class PipelineConfig(TypedDict):
+    """Full, merged load_config() result passed to every mapper function.
+
+    This describes the complete output, not a partial JSON override.
+    Defaults, units and stage rules: docs/08-配置参数参考.md.
+    """
+
+    seed: int
+    features: FeatureConfig
+    geometry: GeometryConfig
+    mapping: MappingConfig
+    bundle_adjustment: BundleAdjustmentConfig
 
 DEFAULT = {
     'seed': 0,
@@ -14,13 +62,26 @@ DEFAULT = {
 }
 
 
-def load_config(path=None):
+def load_config(path: str | Path | None = None) -> PipelineConfig:
+    """Merge a partial JSON override into DEFAULT, validate, and return a fresh full config.
+
+    Use load_config() for defaults or load_config('configs/my_scene.json')
+    for overrides. Pass the entire result to mapper functions, not just
+    result['mapping']. Unknown keys are rejected. Returned configs are independent.
+    """
+    supplied = json.loads(Path(path).read_text(encoding='utf-8')) if path is not None else None
+    if path is not None and not isinstance(supplied, dict):
+        raise ValueError('Config must be a JSON object')
+    return resolve_config(supplied)
+
+
+def resolve_config(overrides: dict | None = None) -> PipelineConfig:
+    """Merge in-memory overrides using the same validation as load_config()."""
     result = copy.deepcopy(DEFAULT)
-    if path is not None:
-        supplied = json.loads(Path(path).read_text(encoding='utf-8'))
-        if not isinstance(supplied, dict):
+    if overrides is not None:
+        if not isinstance(overrides, dict):
             raise ValueError('Config must be a JSON object')
-        for key, value in supplied.items():
+        for key, value in overrides.items():
             if key not in result:
                 raise ValueError(f'Unknown config section: {key}')
             if isinstance(result[key], dict):
@@ -52,5 +113,5 @@ def load_config(path=None):
         raise ValueError('bundle_adjustment.enabled must be a bool')
     if result['bundle_adjustment']['loss'] not in ('linear', 'huber', 'soft_l1'):
         raise ValueError('Unsupported bundle-adjustment loss')
-    return result
+    return cast(PipelineConfig, result)
 

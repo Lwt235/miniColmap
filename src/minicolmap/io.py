@@ -41,11 +41,14 @@ def _keypoint_array(values: object) -> np.ndarray:
     return result
 
 
-def save_reconstruction(model: Reconstruction, path: str | Path) -> None:
-    """Save records in stable ID order; do not persist image pixels."""
+def reconstruction_to_dict(model: Reconstruction) -> dict:
+    """Return an independent, JSON-ready version-one model in stable ID order.
+
+    Array and observation values are copied to ordinary Python lists, so consumers
+    of a progress snapshot cannot mutate the reconstruction being computed.
+    """
     validate_reconstruction(model)
-    path = _json_path(path)
-    data = {
+    return {
         "schema_version": 1,
         "pose_convention": "world_to_camera",
         "cameras": [
@@ -67,6 +70,12 @@ def save_reconstruction(model: Reconstruction, path: str | Path) -> None:
             for _, p in sorted(model.points.items())
         ],
     }
+
+
+def save_reconstruction(model: Reconstruction, path: str | Path) -> None:
+    """Save records in stable ID order; do not persist image pixels."""
+    data = reconstruction_to_dict(model)
+    path = _json_path(path)
     text = json.dumps(data, ensure_ascii=False, indent=2, allow_nan=False) + "\n"
     path.parent.mkdir(parents=True, exist_ok=True)
     path.write_text(text, encoding="utf-8")

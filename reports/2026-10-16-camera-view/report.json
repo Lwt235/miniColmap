@@ -1,0 +1,10 @@
+{
+  "restoresFreeView": true,
+  "preservedImageAspectAfterResize": true,
+  "pixelAlignedPointPicking": true,
+  "automaticallySelectsCurrentCameraObservation": true,
+  "switchesCamera": true,
+  "resetAndOrbit": true,
+  "pageErrors": [],
+  "status": "passed"
+}

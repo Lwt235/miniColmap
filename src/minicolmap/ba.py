@@ -2,8 +2,10 @@
 
 from __future__ import annotations
 
+import einx
 import numpy as np
 from numpy.typing import ArrayLike, NDArray
+from scipy.spatial.transform import Rotation
 
 from .geometry import _array, _intrinsics
 
@@ -54,5 +56,20 @@ def bundle_residuals(
             raise ValueError(f"{name} contains an out-of-range index")
         indices.append(array)
     camera_indices, point_indices = indices
-    # TODO B1: lazy Rotation import, observation-indexed projection, flat residuals.
-    raise NotImplementedError("TODO B1: implement bundle-adjustment residuals")
+    # B1: lazy Rotation import, observation-indexed projection, flat residuals.
+    if len(observed_xy) == 0:
+        return np.empty(0, dtype=np.float64)
+    R = Rotation.from_rotvec(rotvecs).as_matrix()
+
+    R_obs = R[camera_indices]
+    t_obs = translations[camera_indices]
+    X_obs = points[point_indices]
+    Xc = einx.dot("N i j, N j -> N i", R_obs, X_obs) + t_obs
+    if np.any(np.abs(Xc[:, 2]) < 1e-12):
+        raise ValueError("Camera depth is too close to zero")
+
+    projected_h = Xc @ K.T
+    predicted_xy = projected_h[:, :2] / projected_h[:, 2:3]
+    residuals = predicted_xy - observed_xy
+
+    return residuals.reshape(-1).astype(np.float64)

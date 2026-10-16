@@ -74,9 +74,9 @@ def project_points(
         return np.empty((0, 2)), np.empty((0,))
     X_c = X @ R.T + t
     P = X_c @ K.T
-    pixels, z = P[:, :2] / P[:, 2:3], P[:, 2]
-    if (np.abs(z) < 1e-12).any():
+    if (np.abs(P[:, 2]) < 1e-12).any():
         raise ValueError(f"found at least one of the |z| < 1e-12")
+    pixels, z = P[:, :2] / P[:, 2:3], P[:, 2]
     return pixels, z
 
 
@@ -236,6 +236,8 @@ def ransac_fundamental(
     F = eight_point(x1[best_mask], x2[best_mask])
     final_errors = sampson_distance(F, x1, x2)
     final_mask = final_errors < threshold_px ** 2
+    if np.count_nonzero(final_mask) < 8:
+        raise ValueError("final valid counts less than 8")
     return F, final_mask
 
 

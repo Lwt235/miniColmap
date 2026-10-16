@@ -1,0 +1,12 @@
+{
+  "alignsWithoutLock": true,
+  "rotation": true,
+  "pan": true,
+  "zoom": true,
+  "realignsOnClick": true,
+  "responsivePoseAndPointPicking": true,
+  "observationEntryAlsoFree": true,
+  "switchCameraResetAndOrbit": true,
+  "pageErrors": [],
+  "status": "passed"
+}

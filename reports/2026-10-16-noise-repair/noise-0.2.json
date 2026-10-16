@@ -1,0 +1,125 @@
+{
+  "seed": 73,
+  "noise_px": 0.2,
+  "input_images": 8,
+  "input_scene_points": 120,
+  "known_correspondences": true,
+  "stages": [
+    {
+      "registered": 2,
+      "points": 60
+    },
+    {
+      "registered": 3,
+      "points": 60,
+      "new_points": 0
+    },
+    {
+      "registered": 4,
+      "points": 120,
+      "new_points": 60
+    },
+    {
+      "registered": 5,
+      "points": 120,
+      "new_points": 0
+    },
+    {
+      "registered": 6,
+      "points": 120,
+      "new_points": 0
+    },
+    {
+      "registered": 7,
+      "points": 120,
+      "new_points": 0
+    },
+    {
+      "registered": 8,
+      "points": 120,
+      "new_points": 0
+    }
+  ],
+  "warnings": [],
+  "ba_max_nfev": 50,
+  "initialization": {
+    "candidates": [
+      {
+        "images": [
+          3,
+          11
+        ],
+        "matches": 60,
+        "selected": true,
+        "rejection_reason": null,
+        "fundamental_sampson_median_px": 0.11503315810035489,
+        "constrained_essential_sampson_median_px": 8.80207756619902,
+        "seed_positive_points": 60,
+        "seed_angle_points": 60,
+        "refinement": {
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 6.234715373456936,
+          "candidate_mean_px": 0.09778822028474259,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null
+        },
+        "positive_points": 60,
+        "angle_points": 60,
+        "reprojection_points": 60,
+        "accepted_tracks": 60
+      }
+    ],
+    "summary": {
+      "image_count": 8,
+      "registered_images": 2,
+      "point_count": 60,
+      "observation_count": 120,
+      "mean_reprojection_error_px": 0.09778822028474353,
+      "median_reprojection_error_px": 0.08646884591924256,
+      "p95_reprojection_error_px": 0.2331337457701558,
+      "positive_depth_ratio": 1.0
+    },
+    "gauge": {
+      "first_rotation_identity_error": 0.0,
+      "first_translation_norm": 0.0,
+      "second_translation_norm": 0.9999999999999998
+    },
+    "ground_truth_errors": {
+      "rotation_deg": 0.6049224904683229,
+      "translation_direction_deg": 0.21471240475995165
+    }
+  },
+  "before_ba": {
+    "image_count": 8,
+    "registered_images": 8,
+    "point_count": 120,
+    "observation_count": 835,
+    "mean_reprojection_error_px": 0.3772747244313842,
+    "median_reprojection_error_px": 0.2799485153118879,
+    "p95_reprojection_error_px": 1.140464382214438,
+    "positive_depth_ratio": 1.0
+  },
+  "ba": {
+    "accepted": true,
+    "solver_success": true,
+    "nfev": 14,
+    "before_mean_px": 0.3772747244313842,
+    "candidate_mean_px": 0.21503442383827118,
+    "message": "`ftol` termination condition is satisfied.",
+    "rejection_reason": null
+  },
+  "after_ba": {
+    "image_count": 8,
+    "registered_images": 8,
+    "point_count": 120,
+    "observation_count": 835,
+    "mean_reprojection_error_px": 0.21503442383827118,
+    "median_reprojection_error_px": 0.20273979022651994,
+    "p95_reprojection_error_px": 0.42515499983915234,
+    "positive_depth_ratio": 1.0
+  },
+  "status": "passed",
+  "stage": "done"
+}

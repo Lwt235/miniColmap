@@ -11,12 +11,17 @@ dependencies = ["numpy>=1.26,<3", "opencv-python-headless>=4.8,<5", "scipy>=1.11
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10"]
+ui = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "python-multipart>=0.0.18,<1"]
+ui-test = ["httpx>=0.27,<1"]
 
 [project.scripts]
 mini-colmap = "minicolmap.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"minicolmap.ui" = ["static/*", "static/assets/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
