@@ -203,7 +203,10 @@ try {
   assert.equal(finished.point_count, 1283);
   assert(finished.snapshots.length >= 9);
   const reconstructed = await get('/api/runs/' + run.id + '/scene');
-  assert(Math.abs(reconstructed.summary.mean_reprojection_error_px - 0.2629256569539256) < 1e-10);
+  // Adaptive sampling may choose a different valid F from the fixed-budget baseline.
+  assert(reconstructed.summary.mean_reprojection_error_px < 0.5);
+  assert(reconstructed.summary.p95_reprojection_error_px < 2);
+  assert.equal(reconstructed.summary.positive_depth_ratio, 1);
   report.realReconstruction = {
     id: run.id,
     output: finished.output_path,
@@ -242,12 +245,14 @@ try {
   assert.equal(baReports.ba.solver_success, false);
   assert(baReports.ba.candidate_mean_px < baReports.ba.before_mean_px);
   await page.getByLabel('选择场景快照', { exact: true }).selectOption(beforeBA.id);
-  await page.waitForFunction(() =>
-    document.querySelector('.scene-stats')?.textContent.includes('0.263'),
+  await page.waitForFunction(
+    (value) => document.querySelector('.scene-stats')?.textContent.includes(value),
+    baReports.ba.before_mean_px.toFixed(3),
   );
   await page.getByLabel('选择场景快照', { exact: true }).selectOption(afterBA.id);
-  await page.waitForFunction(() =>
-    document.querySelector('.scene-stats')?.textContent.includes('0.174'),
+  await page.waitForFunction(
+    (value) => document.querySelector('.scene-stats')?.textContent.includes(value),
+    baReports.ba.candidate_mean_px.toFixed(3),
   );
   report.realBARun = { id: baRun.id, output: baFinished.output_path, ba: baReports.ba };
   await page.getByRole('button', { name: '质量与诊断', exact: true }).click();

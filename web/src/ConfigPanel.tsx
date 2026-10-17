@@ -8,6 +8,7 @@ type Field = {
   help: string;
   step?: number;
   min?: number;
+  max?: number;
 };
 const groups: {
   key: 'features' | 'geometry' | 'mapping' | 'bundle_adjustment';
@@ -54,8 +55,24 @@ const groups: {
         key: 'max_trials',
         label: '最大采样次数',
         unit: '次',
-        help: '两视图基础矩阵 RANSAC 的采样预算。',
+        help: '自适应 RANSAC 的采样硬上限；置信度要求更多次数时仍受此限制。',
         step: 100,
+        min: 1,
+      },
+      {
+        key: 'confidence',
+        label: 'RANSAC 置信度',
+        help: '目标概率，严格在0与1之间；提高置信度通常需要更多采样，仍受硬上限限制。',
+        step: 0.001,
+        min: 0,
+        max: 1,
+      },
+      {
+        key: 'min_trials',
+        label: '最少采样次数',
+        unit: '次',
+        help: '提前停止前至少抽样的次数；若超过最大采样次数，则硬上限优先。',
+        step: 1,
         min: 1,
       },
       {
@@ -230,6 +247,8 @@ export default function ConfigPanel({
                   type="number"
                   step={field.step ?? 1}
                   min={field.min}
+                  max={field.max}
+                  aria-label={field.label}
                   value={Number(
                     (config[group.key] as unknown as Record<string, unknown>)[field.key],
                   )}
@@ -237,6 +256,11 @@ export default function ConfigPanel({
                 />
               </label>
             ))}
+            {group.key === 'geometry' && (
+              <p className="form-note">
+                自适应 RANSAC：置信度不是内点比例；最少采样次数超过硬上限时，按上限执行。
+              </p>
+            )}
             {group.key === 'bundle_adjustment' && (
               <label className="number-field">
                 <span>损失函数</span>

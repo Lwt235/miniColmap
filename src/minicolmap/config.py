@@ -18,6 +18,8 @@ class GeometryConfig(TypedDict):
 
     threshold_px: float
     max_trials: int
+    confidence: float  # Target probability in (0, 1), subject to max_trials.
+    min_trials: int  # Positive minimum; the hard max_trials cap takes precedence.
     min_inliers: int  # Pair admission and M1's minimum accepted initial points.
 
 
@@ -55,7 +57,8 @@ class PipelineConfig(TypedDict):
 DEFAULT = {
     'seed': 0,
     'features': {'max_features': 4000, 'ratio': 0.75},
-    'geometry': {'threshold_px': 1.5, 'max_trials': 2000, 'min_inliers': 30},
+    'geometry': {'threshold_px': 1.5, 'max_trials': 2000, 'confidence': 0.99,
+                 'min_trials': 20, 'min_inliers': 30},
     'mapping': {'min_pnp_points': 15, 'pnp_threshold_px': 3.0, 'min_angle_deg': 1.5,
                 'max_reprojection_px': 3.0},
     'bundle_adjustment': {'enabled': False, 'max_nfev': 50, 'loss': 'huber', 'f_scale': 1.0},
@@ -90,11 +93,11 @@ def resolve_config(overrides: dict | None = None) -> PipelineConfig:
                 result[key].update(value)
             else:
                 result[key] = value
-    def number(section, key, lower, upper=None, integer=False):
+    def number(section, key, lower, upper=None, integer=False, lower_open=False):
         value = result[section][key]
         if isinstance(value, bool) or not isinstance(value, (int, float)) or not math.isfinite(value):
             raise ValueError(f'{section}.{key} must be a finite number')
-        if value < lower or (upper is not None and value >= upper) or (integer and not isinstance(value, int)):
+        if value < lower or (lower_open and value == lower) or (upper is not None and value >= upper) or (integer and not isinstance(value, int)):
             raise ValueError(f'Invalid value for {section}.{key}')
     if not isinstance(result['seed'], int) or isinstance(result['seed'], bool) or result['seed'] < 0:
         raise ValueError('seed must be a nonnegative integer')
@@ -102,6 +105,8 @@ def resolve_config(overrides: dict | None = None) -> PipelineConfig:
     number('features', 'ratio', 1e-12, 1)
     number('geometry', 'threshold_px', 1e-12)
     number('geometry', 'max_trials', 1, integer=True)
+    number('geometry', 'confidence', 0, 1, lower_open=True)
+    number('geometry', 'min_trials', 1, integer=True)
     number('geometry', 'min_inliers', 8, integer=True)
     number('mapping', 'min_pnp_points', 6, integer=True)
     number('mapping', 'pnp_threshold_px', 1e-12)

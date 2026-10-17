@@ -1,0 +1,13 @@
+{
+  "config.json": true,
+  "pairs.json": true,
+  "initialization.json": true,
+  "model.json": true,
+  "browser_checks_passed": true,
+  "runtime_high_qos": true,
+  "python_tests_passed": 260,
+  "frontend_tests_passed": 9,
+  "idle_draw_calls": 0,
+  "result_output": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_111907_e6910e",
+  "camera_interaction_checks_passed": true
+}

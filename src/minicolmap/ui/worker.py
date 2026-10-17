@@ -26,9 +26,13 @@ def atomic_json(path: Path, value) -> None:
 
 
 def main(metadata: str) -> int:
+    from .runtime import configure_worker_runtime
+    runtime = configure_worker_runtime()
+    cpu_started = time.process_time()
     from ..pipeline import reconstruct
     state_path = Path(metadata)
     run = json.loads(state_path.read_text(encoding="utf-8"))
+    run['runtime'] = runtime
     output = Path(run["output_path"])
     ui_dir = output / "ui"
     started = time.monotonic()
@@ -86,6 +90,9 @@ def main(metadata: str) -> int:
         return 1
     finally:
         run["elapsed_seconds"] = time.monotonic() - started
+        runtime['process_cpu_seconds'] = time.process_time() - cpu_started
+        if output.exists():
+            atomic_json(output / 'runtime.json', runtime)
         atomic_json(state_path, run)
 
 

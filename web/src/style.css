@@ -1501,6 +1501,57 @@ details > summary::-webkit-details-marker {
   gap: 12px;
   margin-top: 12px;
 }
+.timing-panel {
+  border: 1px solid #34454d;
+  border-radius: 5px;
+  margin: 12px 0;
+  padding: 10px 12px;
+  font-size: 11px;
+}
+.timing-panel summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  color: #bed4d7;
+}
+.timing-panel summary strong {
+  margin-left: auto;
+  font-weight: 500;
+}
+.timing-panel table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+  font-variant-numeric: tabular-nums;
+}
+.timing-panel th,
+.timing-panel td {
+  text-align: right;
+  padding: 5px 8px;
+  border-bottom: 1px solid #2b383e;
+}
+.timing-panel th:first-child,
+.timing-panel td:first-child {
+  text-align: left;
+}
+.timing-panel th {
+  color: #8fa4ad;
+  font-weight: 400;
+}
+.timing-details {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 24px;
+  color: #a9d5c9;
+  margin-top: 12px;
+}
+.timing-panel p {
+  font-size: 10px;
+  line-height: 1.7;
+  color: #839ba6;
+  margin: 8px 0 0;
+}
 .report-disclosures details {
   border: 1px solid #33444f;
   border-radius: 4px;

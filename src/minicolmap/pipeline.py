@@ -8,7 +8,7 @@ from typing import Callable
 
 import numpy as np
 
-from .config import PipelineConfig
+from .config import DEFAULT, PipelineConfig
 from .export import write_colmap_text, write_ply
 from .frontend import extract_features, load_rgb, match_descriptors, save_match_preview
 from .geometry import ransac_fundamental
@@ -18,6 +18,7 @@ from .metrics import reconstruction_summary
 from .models import Reconstruction, validate_reconstruction
 from .optimization import refine_model
 from .tracks import build_tracks
+from .timing import PipelineTimer
 
 
 def _write_json(path, value):
@@ -39,12 +40,13 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
     An observer that raises is logged and disabled; it cannot fail a reconstruction.
     With no observer, intermediate models are not serialized.
     """
+    timer = PipelineTimer(clock=perf_counter)
     dataset = load_dataset(dataset_path)
     output = Path(output)
     if output.exists() and any(output.iterdir()):
         raise ValueError(f'Output directory is not empty; choose a new run directory: {output}')
     output.mkdir(parents=True, exist_ok=True)
-    started = perf_counter()
+    timer.stage('features')
     status = {'status': 'running', 'stage': 'features', 'dataset': str(Path(dataset_path).resolve())}
 
     def notify(kind, **values):
@@ -57,6 +59,11 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
                 on_event = None
 
     def stage(name):
+        previous = status['stage']
+        timer.stage(name)
+        report = timer.report()
+        _write_json(output / 'timings.json', report)
+        notify('timing', message=f"{previous}: {report['stages_seconds'][previous]:.3f} s")
         status['stage'] = name
         _write_json(output / 'run_status.json', status)
         notify('stage', status=status['status'])
@@ -67,6 +74,7 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
 
     _write_json(output / 'config.json', settings)
     _write_json(output / 'run_status.json', status)
+    _write_json(output / 'timings.json', timer.report())
     notify('stage', status='running')
     try:
         model = Reconstruction(cameras=dataset['cameras'], images=dataset['images'], poses={}, points={})
@@ -91,7 +99,8 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
         (output / 'matches').mkdir()
         pair_total = len(model.images) * (len(model.images) - 1) // 2
         for completed, (i, j) in enumerate(combinations(sorted(model.images), 2), 1):
-            indices = match_descriptors(descriptors[i], descriptors[j], settings['features']['ratio'])
+            with timer.measure('descriptor_matching'):
+                indices = match_descriptors(descriptors[i], descriptors[j], settings['features']['ratio'])
             item = {'images': [i, j], 'candidates': len(indices), 'inliers': 0}
             if len(indices) < 8:
                 item['reason'] = 'fewer than 8 mutual matches'
@@ -101,8 +110,11 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
                 continue
             xy1, xy2 = model.images[i].keypoints[indices[:, 0]], model.images[j].keypoints[indices[:, 1]]
             try:
-                F, mask = ransac_fundamental(xy1, xy2, settings['geometry']['threshold_px'],
-                                              settings['geometry']['max_trials'], settings['seed'])
+                with timer.measure('fundamental_ransac'):
+                    F, mask = ransac_fundamental(xy1, xy2, settings['geometry']['threshold_px'],
+                                                  settings['geometry']['max_trials'], settings['seed'],
+                                                  confidence=settings['geometry'].get('confidence', DEFAULT['geometry']['confidence']),
+                                                  min_trials=settings['geometry'].get('min_trials', DEFAULT['geometry']['min_trials']))
             except ValueError as exc:
                 item['reason'] = str(exc)
                 pair_report.append(item)
@@ -183,16 +195,23 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
         write_colmap_text(model, output / 'sparse' / '0')
         summary = reconstruction_summary(model)
         summary['unregistered_image_ids'] = sorted(set(model.images) - set(model.poses))
-        summary['elapsed_seconds'] = perf_counter() - started
+        timer.finish('completed')
+        summary['timings'] = timer.report()
+        summary['elapsed_seconds'] = summary['timings']['total_seconds']
         summary['tracks'] = len(tracks)
         _write_json(output / 'summary.json', summary)
+        _write_json(output / 'timings.json', summary['timings'])
+        notify('timing', message=f"export: {summary['timings']['stages_seconds']['export']:.3f} s; total: {summary['elapsed_seconds']:.3f} s")
         status.update(status='completed', stage='done', elapsed_seconds=summary['elapsed_seconds'])
         _write_json(output / 'run_status.json', status)
         notify('stage', status='completed')
         return summary
     except Exception as exc:
+        timer.finish('failed')
+        report = timer.report()
+        _write_json(output / 'timings.json', report)
         status.update(status='todo' if isinstance(exc, NotImplementedError) else 'failed',
-                      error=str(exc), elapsed_seconds=perf_counter() - started)
+                      error=str(exc), elapsed_seconds=report['total_seconds'])
         _write_json(output / 'run_status.json', status)
         notify('warning', status=status['status'], message=str(exc))
         raise

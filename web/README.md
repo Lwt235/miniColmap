@@ -27,6 +27,13 @@ npm run format
 `npm run test:e2e:camera` 只读验证一键对齐相机后立即旋转、平移、缩放、再次对齐、窗口变化和选点，不启动或取消重建任务。
 `cameraView.ts` 把保存的R/t转换成自由观察相机，并参考K的垂直视场角。对齐后使用整个三维面板，保持自由控制。
 
+`node e2e/adaptive-config.mjs` 验证自适应参数默认值、校验、导入导出，并启动一个独立8图任务，检查非默认参数实际保存和成功重建。
+需要已准备TempleRing连续8图，且当前没有活动任务；测试只在失败时清理它自己创建的任务。
+
+`node e2e/performance.mjs` 在真实页面重跑47图，使用 `outputs/ui_20261017_102109_14c560` 的数据与完整配置作为对照，检查最终模型完全一致、Windows工作进程HighQoS、场景/报告请求次数、静止视图停止绘制和拖拽恢复绘制。验收记录保存到 `reports/web-performance/browser/`；运行前需无活动重建任务。
+
+`node e2e/performance-inspection.mjs` 读取上述已完成任务的报告，只读复验最终场景、按需绘制、鼠标旋转及诊断文件下载，不创建或取消重建任务。
+
 主要组件：`App` 管理任务、SSE、数据和场景状态；`Viewer` 批量绘制点与相机；`Inspector` 按需读取完整轨迹并叠加像素观测；`ConfigPanel` 与 `ImportDialog` 连接现有配置校验和导入接口。相机几何与显示筛选位于 `math.ts`，测试覆盖非单位旋转、去标定和原始索引保留。
 
 相机位姿采用世界到相机的 `R,t`，相机中心为 `−Rᵀt`，相机局部坐标为 `+Z` 朝前、`+Y` 朝下。Three.js 视锥直接由这些量构造，不用其默认相机朝向推断结果。RGB 字节先从 sRGB 转成线性色值，再交给输出为 sRGB 的渲染器。

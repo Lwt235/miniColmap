@@ -1,7 +1,13 @@
 export type Config = {
   seed: number;
   features: { max_features: number; ratio: number };
-  geometry: { threshold_px: number; max_trials: number; min_inliers: number };
+  geometry: {
+    threshold_px: number;
+    max_trials: number;
+    confidence: number;
+    min_trials: number;
+    min_inliers: number;
+  };
   mapping: {
     min_pnp_points: number;
     pnp_threshold_px: number;
@@ -113,7 +119,15 @@ export type DisplayOptions = {
   minTrack: number;
 };
 export type Artifact = { name: string; url: string };
+export type TimingReport = {
+  status: 'running' | 'completed' | 'failed';
+  unit: 'seconds';
+  total_seconds: number;
+  stages_seconds: Record<string, number>;
+  details: Record<string, { seconds: number; calls: number }>;
+};
 export type Reports = {
+  timings?: TimingReport | null;
   pairs: unknown;
   initialization: unknown;
   ba: {

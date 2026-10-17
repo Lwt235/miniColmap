@@ -1,0 +1,55 @@
+{
+  "rejectsInvalidConfidence": true,
+  "exportsParameters": true,
+  "legacyImportFillsDefaults": true,
+  "realRun": {
+    "id": "706c5db005e94049",
+    "output": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_100118_706c5d",
+    "geometry": {
+      "threshold_px": 1.5,
+      "max_trials": 2000,
+      "confidence": 0.975,
+      "min_trials": 37,
+      "min_inliers": 30
+    },
+    "summary": {
+      "image_count": 8,
+      "registered_images": 8,
+      "point_count": 1283,
+      "observation_count": 4252,
+      "mean_reprojection_error_px": 0.26734589404108067,
+      "median_reprojection_error_px": 0.12103132158111435,
+      "p95_reprojection_error_px": 1.0372649388393944,
+      "positive_depth_ratio": 1,
+      "unregistered_image_ids": [],
+      "timings": {
+        "status": "completed",
+        "unit": "seconds",
+        "total_seconds": 11.437577499978943,
+        "stages_seconds": {
+          "dataset_loading": 0.010886299976846203,
+          "features": 1.1409592000127304,
+          "pair_geometry": 4.596593399997801,
+          "tracks": 0.05600119999144226,
+          "initialization": 4.200980300025549,
+          "incremental_mapping": 1.0735626999812666,
+          "export": 0.3585943999933079
+        },
+        "details": {
+          "descriptor_matching": {
+            "seconds": 0.17517320002662018,
+            "calls": 28
+          },
+          "fundamental_ransac": {
+            "seconds": 3.7592603000521194,
+            "calls": 28
+          }
+        }
+      },
+      "elapsed_seconds": 11.437577499978943,
+      "tracks": 1283
+    }
+  },
+  "pageErrors": [],
+  "status": "passed"
+}

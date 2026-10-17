@@ -8,6 +8,7 @@ Validation is provided; valid inputs reach an explicit learning TODO.
 
 from __future__ import annotations
 
+import math
 import numpy as np
 import einx
 from numpy.typing import ArrayLike, NDArray
@@ -175,11 +176,9 @@ def sampson_distance(F: ArrayLike, x1: ArrayLike, x2: ArrayLike) -> FloatArray:
 
 
 def ransac_fundamental(
-    x1: ArrayLike,
-    x2: ArrayLike,
-    threshold_px: float = 1.5,
-    max_trials: int = 2000,
-    seed: int = 0,
+    x1: ArrayLike, x2: ArrayLike,
+    threshold_px: float = 1.5, max_trials: int = 2000, seed: int = 0,
+    *, confidence: float = 0.99, min_trials: int = 20
 ) -> tuple[FloatArray, BoolArray]:
     """G5: Robust F from 8-point samples; return F and Boolean inlier mask.
 
@@ -199,6 +198,10 @@ def ransac_fundamental(
         raise ValueError("max_trials must be a positive integer")
     if isinstance(seed, (bool, np.bool_)) or not isinstance(seed, (int, np.integer)) or seed < 0:
         raise ValueError("seed must be a nonnegative integer")
+    if isinstance(confidence, (bool, np.bool_)) or not isinstance(confidence, (int, float, np.integer, np.floating)) or not np.isfinite(confidence) or not 0 < confidence < 1:
+        raise ValueError("confidence must be finite and in (0, 1)")
+    if isinstance(min_trials, (bool, np.bool_)) or not isinstance(min_trials, (int, np.integer)) or min_trials < 1:
+        raise ValueError("min_trials must be a positive integer")
     # G5: sample -> G3 -> G4 -> consensus -> refit -> fresh mask.
     rng = np.random.default_rng(seed)
     N = len(x1)
@@ -206,7 +209,10 @@ def ransac_fundamental(
     best_count = 0
     best_median = np.inf
 
-    for _ in range(max_trials):
+    trial = 0
+    trial_limit = max_trials
+    while trial < trial_limit:
+        trial += 1
         indices = rng.choice(N, size=8, replace=False)
 
         try:
@@ -229,6 +235,16 @@ def ransac_fundamental(
             best_count = count
             best_median = median
             best_mask = mask.copy()
+
+            # Estimate required total trial count
+            w = best_count / N
+            p_good = w ** 8
+            if p_good >= 1.0:
+                required = 1
+            else:
+                required = math.ceil(math.log1p(-confidence) / math.log1p(-p_good))
+
+            trial_limit = min(trial_limit, max(min_trials, required))
 
     if best_mask is None:
         raise ValueError("RANSAC failed to find a valid model")

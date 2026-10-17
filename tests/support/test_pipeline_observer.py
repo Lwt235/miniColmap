@@ -34,7 +34,7 @@ def wired_scene(monkeypatch, tmp_path):
         np.full((12, 16, 3), [50, 100, 200], dtype=np.uint8)))
     indices = np.column_stack((np.arange(8), np.arange(8)))
     monkeypatch.setattr(pipeline, 'match_descriptors', lambda *args: indices.copy())
-    monkeypatch.setattr(pipeline, 'ransac_fundamental', lambda *args: (np.eye(3), np.ones(8, bool)))
+    monkeypatch.setattr(pipeline, 'ransac_fundamental', lambda *args, **kwargs: (np.eye(3), np.ones(8, bool)))
     monkeypatch.setattr(pipeline, 'load_rgb', lambda path: np.zeros((12, 16, 3), np.uint8))
     monkeypatch.setattr(pipeline, 'save_match_preview', lambda *args, **kwargs: None)
 
@@ -75,8 +75,8 @@ def test_observer_counts_snapshots_and_original_result_compatibility(wired_scene
             event['model']['poses'].clear()
 
     result = pipeline.reconstruct(manifest, watched, settings, on_event=observe)
-    assert {k: v for k, v in result.items() if k != 'elapsed_seconds'} == {
-        k: v for k, v in baseline.items() if k != 'elapsed_seconds'}
+    assert {k: v for k, v in result.items() if k not in ('elapsed_seconds', 'timings')} == {
+        k: v for k, v in baseline.items() if k not in ('elapsed_seconds', 'timings')}
     assert (watched / 'model.json').read_bytes() == (plain / 'model.json').read_bytes()
     assert (watched / 'points.ply').read_bytes() == (plain / 'points.ply').read_bytes()
     assert [e['stage'] for e in events if e['kind'] == 'stage'] == [
@@ -205,3 +205,107 @@ def test_snapshot_dict_matches_saved_schema(wired_scene, tmp_path):
     pipeline.reconstruct(manifest, tmp_path / 'run', settings)
     path = tmp_path / 'run' / 'model.json'
     assert reconstruction_to_dict(load_reconstruction(path)) == json.loads(path.read_text())
+
+
+def test_pipeline_timings_cover_all_stages_and_matching_subtasks(wired_scene, tmp_path, monkeypatch):
+    from test_timing import Clock
+    clock = Clock()
+    monkeypatch.setattr(pipeline, 'perf_counter', clock)
+    for name, seconds in [('extract_features', 2), ('match_descriptors', .5),
+                          ('ransac_fundamental', .25), ('initialize_map', 3),
+                          ('register_next_image', 1), ('triangulate_new_tracks', .5)]:
+        original = getattr(pipeline, name)
+
+        def measured(*args, _original=original, _seconds=seconds, **kwargs):
+            clock.advance(_seconds)
+            return _original(*args, **kwargs)
+        monkeypatch.setattr(pipeline, name, measured)
+    manifest, settings = wired_scene
+    output = tmp_path / 'timed'
+    result = pipeline.reconstruct(manifest, output, settings)
+    report = json.loads((output / 'timings.json').read_text())
+    assert report == result['timings'] == json.loads((output / 'summary.json').read_text())['timings']
+    assert set(report['stages_seconds']) == {'dataset_loading', 'features', 'pair_geometry',
+                                            'tracks', 'initialization', 'incremental_mapping', 'export'}
+    assert report['stages_seconds']['features'] == 6
+    assert report['stages_seconds']['pair_geometry'] == 2.25
+    assert report['stages_seconds']['initialization'] == 3
+    assert report['stages_seconds']['incremental_mapping'] == 1.5
+    assert report['details']['descriptor_matching'] == {'calls': 3, 'seconds': 1.5}
+    assert report['details']['fundamental_ransac'] == {'calls': 3, 'seconds': .75}
+    assert report['total_seconds'] == result['elapsed_seconds'] == sum(report['stages_seconds'].values())
+
+
+def test_failed_pipeline_persists_elapsed_stage_and_rethrows(wired_scene, tmp_path, monkeypatch):
+    from test_timing import Clock
+    clock = Clock()
+    monkeypatch.setattr(pipeline, 'perf_counter', clock)
+
+    def fail(*args, **kwargs):
+        clock.advance(4)
+        raise ValueError('No suitable initial image pair found')
+    monkeypatch.setattr(pipeline, 'initialize_map', fail)
+    manifest, settings = wired_scene
+    with pytest.raises(ValueError, match='No suitable'):
+        pipeline.reconstruct(manifest, tmp_path / 'failed_timed', settings)
+    report = json.loads((tmp_path / 'failed_timed' / 'timings.json').read_text())
+    assert report['status'] == 'failed' and report['total_seconds'] == 4
+    assert report['stages_seconds']['initialization'] == 4
+    assert 'export' not in report['stages_seconds']
+
+
+def test_ba_timing_is_present_only_when_executed(wired_scene, tmp_path, monkeypatch):
+    from test_timing import Clock
+    clock = Clock()
+    monkeypatch.setattr(pipeline, 'perf_counter', clock)
+
+    def ba(*args):
+        clock.advance(7)
+        return {'accepted': True, 'solver_success': True}
+    monkeypatch.setattr(pipeline, 'refine_model', ba)
+    manifest, settings = wired_scene
+    settings['bundle_adjustment']['enabled'] = True
+    result = pipeline.reconstruct(manifest, tmp_path / 'timed_ba', settings)
+    assert result['timings']['stages_seconds']['bundle_adjustment'] == 7
+
+
+def test_timing_counts_skipped_and_failed_pair_attempts(wired_scene, tmp_path, monkeypatch):
+    manifest, settings = wired_scene
+    matches, ransac = pipeline.match_descriptors, pipeline.ransac_fundamental
+    calls = {'match': 0, 'ransac': 0}
+
+    def match(*args):
+        calls['match'] += 1
+        return np.zeros((7, 2), int) if calls['match'] == 1 else matches(*args)
+
+    def estimate(*args, **kwargs):
+        calls['ransac'] += 1
+        if calls['ransac'] == 1:
+            raise ValueError('degenerate pair')
+        return ransac(*args, **kwargs)
+    monkeypatch.setattr(pipeline, 'match_descriptors', match)
+    monkeypatch.setattr(pipeline, 'ransac_fundamental', estimate)
+    result = pipeline.reconstruct(manifest, tmp_path / 'rejected_timed', settings)
+    assert result['timings']['details']['descriptor_matching']['calls'] == 3
+    assert result['timings']['details']['fundamental_ransac']['calls'] == 2
+
+
+@pytest.mark.parametrize('legacy', [False, True])
+def test_pipeline_passes_and_saves_adaptive_ransac_options(wired_scene, tmp_path, monkeypatch, legacy):
+    manifest, settings = wired_scene
+    settings['geometry'].update(confidence=.975, min_trials=37)
+    if legacy:
+        settings['geometry'].pop('confidence')
+        settings['geometry'].pop('min_trials')
+    calls = []
+
+    def estimate(a, b, threshold_px, max_trials, seed, *, confidence, min_trials):
+        calls.append((threshold_px, max_trials, seed, confidence, min_trials))
+        return np.eye(3), np.ones(len(a), bool)
+    monkeypatch.setattr(pipeline, 'ransac_fundamental', estimate)
+    pipeline.reconstruct(manifest, tmp_path / 'adaptive_config', settings)
+    assert calls == [(1.5, 2000, 0, .99 if legacy else .975, 20 if legacy else 37)] * 3
+    saved = json.loads((tmp_path / 'adaptive_config' / 'config.json').read_text())
+    if not legacy:
+        assert saved['geometry']['confidence'] == .975
+        assert saved['geometry']['min_trials'] == 37

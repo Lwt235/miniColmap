@@ -1,0 +1,101 @@
+{
+  "snapshot_writes": [
+    {
+      "path": "snapshot-0001.json",
+      "seconds": 0.020711899996967986
+    },
+    {
+      "path": "snapshot-0002.json",
+      "seconds": 0.013241799984825775
+    },
+    {
+      "path": "snapshot-0003.json",
+      "seconds": 0.015808299998752773
+    },
+    {
+      "path": "snapshot-0004.json",
+      "seconds": 0.022095499996794388
+    },
+    {
+      "path": "snapshot-0005.json",
+      "seconds": 0.018541199999162927
+    },
+    {
+      "path": "snapshot-0006.json",
+      "seconds": 0.025657299993326887
+    },
+    {
+      "path": "snapshot-0007.json",
+      "seconds": 0.018599300005007535
+    },
+    {
+      "path": "snapshot-0008.json",
+      "seconds": 0.017635700001847
+    }
+  ],
+  "source": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_093144_43b5d5",
+  "output": "D:\\yy_folder\\miniColmap\\.cache\\initialization-ui-diagnostic-a7a3e656\\output",
+  "initialize_map_seconds": 3.5041032999870367,
+  "worker_exit_code": 0,
+  "timings": {
+    "status": "completed",
+    "unit": "seconds",
+    "total_seconds": 10.156003699987195,
+    "stages_seconds": {
+      "dataset_loading": 0.008990499976789579,
+      "features": 0.7976531000167597,
+      "pair_geometry": 4.145856699993601,
+      "tracks": 0.03709830000298098,
+      "initialization": 3.586311199993361,
+      "incremental_mapping": 1.2402938000159338,
+      "export": 0.3398000999877695
+    },
+    "details": {
+      "descriptor_matching": {
+        "seconds": 0.09431400001631118,
+        "calls": 28
+      },
+      "fundamental_ransac": {
+        "seconds": 3.337058400094975,
+        "calls": 28
+      }
+    }
+  },
+  "summary": {
+    "image_count": 8,
+    "registered_images": 8,
+    "point_count": 1283,
+    "observation_count": 4253,
+    "mean_reprojection_error_px": 0.2681107681692468,
+    "median_reprojection_error_px": 0.12108274471229313,
+    "p95_reprojection_error_px": 1.0423022890875109,
+    "positive_depth_ratio": 1.0,
+    "unregistered_image_ids": [],
+    "timings": {
+      "status": "completed",
+      "unit": "seconds",
+      "total_seconds": 10.156003699987195,
+      "stages_seconds": {
+        "dataset_loading": 0.008990499976789579,
+        "features": 0.7976531000167597,
+        "pair_geometry": 4.145856699993601,
+        "tracks": 0.03709830000298098,
+        "initialization": 3.586311199993361,
+        "incremental_mapping": 1.2402938000159338,
+        "export": 0.3398000999877695
+      },
+      "details": {
+        "descriptor_matching": {
+          "seconds": 0.09431400001631118,
+          "calls": 28
+        },
+        "fundamental_ransac": {
+          "seconds": 3.337058400094975,
+          "calls": 28
+        }
+      }
+    },
+    "elapsed_seconds": 10.156003699987195,
+    "tracks": 1283
+  }
+}

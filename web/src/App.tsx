@@ -41,6 +41,7 @@ import { api, json, number, stageName, snapshotName } from './api';
 import Viewer from './Viewer';
 import ConfigPanel from './ConfigPanel';
 import Inspector from './Inspector';
+import TimingPanel from './TimingPanel';
 import ImportDialog from './ImportDialog';
 
 const statusNames: Record<string, string> = {
@@ -130,10 +131,12 @@ export default function App() {
     [bottomExpanded, setBottomExpanded] = useState(false),
     [help, setHelp] = useState(false),
     [connection, setConnection] = useState(''),
-    [refresh, setRefresh] = useState(0);
+    [refresh, setRefresh] = useState(0),
+    [reportRefresh, setReportRefresh] = useState(0);
   const activeRun = runs.find((r) => r.status === 'running');
   const modelInput = useRef<HTMLInputElement>(null),
-    logEnd = useRef<HTMLDivElement>(null);
+    logEnd = useRef<HTMLDivElement>(null),
+    reloadScene = useRef<(() => void) | null>(null);
   const notify = useCallback((text: string, error = true) => setBanner({ text, error }), []);
   const updateRun = useCallback((r: Run) => {
     setRun(r);
@@ -224,23 +227,46 @@ export default function App() {
   }, [datasetId, notify]);
   useEffect(() => {
     if (!runId) return;
-    let cancelled = false;
-    setSceneLoading(true);
-    api<Scene>(
-      `/api/runs/${encodeURIComponent(runId)}/scene?snapshot=${encodeURIComponent(snapshot)}`,
-    )
-      .then((v) => {
-        if (!cancelled) setScene(v);
-      })
-      .catch(() => {
+    let cancelled = false,
+      loading = false,
+      pending = false;
+    const controller = new AbortController();
+    const load = async () => {
+      if (cancelled) return;
+      if (loading) {
+        pending = true;
+        return;
+      }
+      loading = true;
+      setSceneLoading(true);
+      try {
+        const value = await api<Scene>(
+          `/api/runs/${encodeURIComponent(runId)}/scene?snapshot=${encodeURIComponent(snapshot)}`,
+          { signal: controller.signal },
+        );
+        if (!cancelled) setScene(value);
+      } catch {
         if (!cancelled) setScene(null);
-      })
-      .finally(() => {
-        if (!cancelled) setSceneLoading(false);
-      });
+      } finally {
+        loading = false;
+        if (!cancelled) {
+          setSceneLoading(false);
+          if (pending) {
+            pending = false;
+            void load();
+          }
+        }
+      }
+    };
+    reloadScene.current = () => void load();
     return () => {
       cancelled = true;
+      controller.abort();
+      reloadScene.current = null;
     };
+  }, [runId, snapshot]);
+  useEffect(() => {
+    reloadScene.current?.();
   }, [runId, snapshot, refresh]);
   useEffect(() => {
     if (!runId) return;
@@ -261,7 +287,7 @@ export default function App() {
     return () => {
       cancelled = true;
     };
-  }, [runId, run?.status, refresh, notify]);
+  }, [runId, run?.status, reportRefresh, notify]);
   useEffect(() => {
     if (!runId || run?.status !== 'running') {
       setConnection('');
@@ -269,8 +295,12 @@ export default function App() {
     }
     const source = new EventSource(`/api/runs/${encodeURIComponent(runId)}/events`);
     let timer: ReturnType<typeof setTimeout> | undefined,
-      closed = false;
-    const refreshRun = () => {
+      closed = false,
+      sceneChanged = false,
+      reportsChanged = false;
+    const refreshRun = (sceneUpdate = false, reportUpdate = false) => {
+      sceneChanged ||= sceneUpdate;
+      reportsChanged ||= reportUpdate;
       if (timer) return;
       timer = setTimeout(() => {
         timer = undefined;
@@ -279,12 +309,14 @@ export default function App() {
             if (!closed) updateRun(r);
           })
           .catch(() => {});
-        setRefresh((n) => n + 1);
+        if (sceneChanged) setRefresh((n) => n + 1);
+        if (reportsChanged) setReportRefresh((n) => n + 1);
+        sceneChanged = reportsChanged = false;
       }, 300);
     };
     source.onopen = () => {
       setConnection('已连接');
-      refreshRun();
+      refreshRun(true, true);
     };
     source.onmessage = (e) => {
       try {
@@ -301,7 +333,12 @@ export default function App() {
             },
           ].slice(-500),
         );
-        refreshRun();
+        const kind = String(data.kind ?? '');
+        const terminal = ['complete', 'terminal', 'error', 'cancelled'].includes(kind);
+        refreshRun(
+          kind === 'snapshot' || terminal,
+          kind === 'timing' || kind === 'warning' || terminal,
+        );
       } catch {
         /* Ignore empty keep-alive lines. */
       }
@@ -318,24 +355,29 @@ export default function App() {
   useEffect(() => {
     if (!activeRun) return;
     let cancelled = false;
-    const timer = setInterval(() => {
-      api<Run[]>('/api/runs')
-        .then((list) => {
+    let timer: ReturnType<typeof setTimeout>;
+    const poll = () => {
+      api<Run>(`/api/runs/${encodeURIComponent(activeRun.id)}`)
+        .then((current) => {
           if (cancelled) return;
-          setRuns(list);
-          const current = list.find((r) => r.id === runId);
-          if (current) {
+          setRuns((old) => old.map((item) => (item.id === current.id ? current : item)));
+          if (current.id === runId) {
             setRun(current);
-            if (current.id === activeRun.id && current.status !== 'running') {
+            if (current.status !== 'running') {
               setRefresh((n) => n + 1);
+              setReportRefresh((n) => n + 1);
             }
           }
         })
-        .catch(() => {});
-    }, 2000);
+        .catch(() => {})
+        .finally(() => {
+          if (!cancelled) timer = setTimeout(poll, 2000);
+        });
+    };
+    timer = setTimeout(poll, 2000);
     return () => {
       cancelled = true;
-      clearInterval(timer);
+      clearTimeout(timer);
     };
   }, [activeRun?.id, runId]);
   useEffect(() => {
@@ -696,7 +738,7 @@ export default function App() {
                     className="text-button"
                     aria-label="刷新历史运行"
                     onClick={() => {
-                      api<Run[]>('/api/runs')
+                      api<Run[]>('/api/runs?discover=true')
                         .then(setRuns)
                         .catch((e) => notify(String(e)));
                     }}
@@ -979,6 +1021,7 @@ export default function App() {
                     <p>{reports.ba.rejection_reason ?? reports.ba.message}</p>
                   </div>
                 )}
+                {reports?.timings && <TimingPanel timing={reports.timings} />}
                 {run && runStatus(run).startsWith('部分重建') && (
                   <div className="info-note">
                     流程完成，但仅 {run.registered_images}/{run.image_count}{' '}

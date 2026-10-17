@@ -1,0 +1,191 @@
+{
+  "discovery_seconds_profiled": 1.148010400007479,
+  "reads": [
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\middlebury_temple_ring\\dataset.json",
+      "seconds": 0.00029949998133815825,
+      "bytes": 1396
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\middlebury_temple_ring\\dataset_20.json",
+      "seconds": 0.00032740001915954053,
+      "bytes": 2935
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\middlebury_temple_ring\\dataset_5.json",
+      "seconds": 0.0003080999886151403,
+      "bytes": 1004
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\middlebury_temple_ring\\dataset_all.json",
+      "seconds": 0.00030980000155977905,
+      "bytes": 6418
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\middlebury_temple_ring\\dataset_first8.json",
+      "seconds": 0.00027570000384002924,
+      "bytes": 1388
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\middlebury_temple_ring\\provenance.json",
+      "seconds": 0.00027859999681822956,
+      "bytes": 8064
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\middlebury_temple_ring\\reference\\poses.json",
+      "seconds": 0.0004607000155374408,
+      "bytes": 25959
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\298146cbcc724ae6\\dataset.json",
+      "seconds": 0.00029799999902024865,
+      "bytes": 297
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\7cf57e4191694872\\middlebury_temple_ring\\dataset.json",
+      "seconds": 0.0005600000149570405,
+      "bytes": 1396
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\7cf57e4191694872\\middlebury_temple_ring\\dataset_20.json",
+      "seconds": 0.00030369998421519995,
+      "bytes": 2935
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\7cf57e4191694872\\middlebury_temple_ring\\dataset_5.json",
+      "seconds": 0.0003313999914098531,
+      "bytes": 1004
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\7cf57e4191694872\\middlebury_temple_ring\\dataset_all.json",
+      "seconds": 0.0002846000134013593,
+      "bytes": 6418
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\7cf57e4191694872\\middlebury_temple_ring\\dataset_first8.json",
+      "seconds": 0.0005365000106394291,
+      "bytes": 1388
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\7cf57e4191694872\\middlebury_temple_ring\\provenance.json",
+      "seconds": 0.0003024999750778079,
+      "bytes": 8064
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\7cf57e4191694872\\middlebury_temple_ring\\reference\\poses.json",
+      "seconds": 0.0007069999992381781,
+      "bytes": 25959
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\9cb07ec8076b419f\\middlebury_temple_ring\\dataset.json",
+      "seconds": 0.00028589999419637024,
+      "bytes": 1396
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\9cb07ec8076b419f\\middlebury_temple_ring\\dataset_20.json",
+      "seconds": 0.0008966999885160476,
+      "bytes": 2935
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\9cb07ec8076b419f\\middlebury_temple_ring\\dataset_5.json",
+      "seconds": 0.0002809999859891832,
+      "bytes": 1004
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\9cb07ec8076b419f\\middlebury_temple_ring\\dataset_all.json",
+      "seconds": 0.0007178999949246645,
+      "bytes": 6418
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\9cb07ec8076b419f\\middlebury_temple_ring\\dataset_first8.json",
+      "seconds": 0.0003677000058814883,
+      "bytes": 1388
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\9cb07ec8076b419f\\middlebury_temple_ring\\provenance.json",
+      "seconds": 0.00046179999480955303,
+      "bytes": 8064
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\data\\ui_imports\\9cb07ec8076b419f\\middlebury_temple_ring\\reference\\poses.json",
+      "seconds": 0.00046469998778775334,
+      "bytes": 25959
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_102109_14c560\\model.json",
+      "seconds": 0.062483099987730384,
+      "bytes": 6472782
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_191438_257d2b\\model.json",
+      "seconds": 0.010361400025431067,
+      "bytes": 1102054
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_193304_41230a\\model.json",
+      "seconds": 0.00014899999951012433,
+      "bytes": 0
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_093144_43b5d5\\model.json",
+      "seconds": 0.010689299990190193,
+      "bytes": 1102204
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_195535_4f1200\\model.json",
+      "seconds": 0.0001255999959539622,
+      "bytes": 0
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_195408_5c541f\\model.json",
+      "seconds": 0.009635299997171387,
+      "bytes": 1102054
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_100118_706c5d\\model.json",
+      "seconds": 0.011204599984921515,
+      "bytes": 1102154
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_195450_88052f\\model.json",
+      "seconds": 0.011604999977862462,
+      "bytes": 1102061
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_210324_8b52d8\\model.json",
+      "seconds": 0.06179619999602437,
+      "bytes": 6463600
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_093421_cb4035\\model.json",
+      "seconds": 0.061737799987895414,
+      "bytes": 6472782
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\temple_ring_5_no_ba_01\\model.json",
+      "seconds": 0.012199699995107949,
+      "bytes": 649551
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\temple_ring_8_arc_ba_01\\model.json",
+      "seconds": 0.022333200002321973,
+      "bytes": 1102061
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\temple_ring_8_arc_no_ba_01\\model.json",
+      "seconds": 0.0212253000063356,
+      "bytes": 1102054
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\temple_ring_8_no_ba_01\\model.json",
+      "seconds": 0.017409299995051697,
+      "bytes": 820327
+    },
+    {
+      "path": "D:\\yy_folder\\miniColmap\\outputs\\timing_baseline_20261016_01\\model.json",
+      "seconds": 0.018671500001801178,
+      "bytes": 1102054
+    }
+  ],
+  "profile": "         193327 function calls (188375 primitive calls) in 1.147 seconds\n\n   Ordered by: cumulative time\n   List reduced from 159 to 20 due to restriction <20>\n\n   ncalls  tottime  percall  cumtime  percall filename:lineno(function)\n        1    0.023    0.023    1.148    1.148 store.py:49(discover)\n       17    0.001    0.000    1.004    0.059 store.py:259(image_dataset)\n       19    0.002    0.000    0.653    0.034 io.py:131(load_dataset)\n      314    0.004    0.000    0.592    0.002 io.py:114(_relative_image_path)\n      429    0.002    0.000    0.516    0.001 pathlib.py:1228(resolve)\n      429    0.004    0.000    0.387    0.001 <frozen ntpath>:692(realpath)\n      858    0.358    0.000    0.358    0.000 {built-in method nt._getfinalpathname}\n       37    0.000    0.000    0.357    0.010 <stdin>:9(read)\n       37    0.003    0.000    0.340    0.009 store.py:20(read_json)\n       54    0.000    0.000    0.246    0.005 __init__.py:299(loads)\n       54    0.000    0.000    0.246    0.005 decoder.py:332(decode)\n       54    0.245    0.005    0.245    0.005 decoder.py:343(raw_decode)\n      971    0.001    0.000    0.242    0.000 pathlib.py:835(stat)\n      971    0.224    0.000    0.242    0.000 {built-in method nt.stat}\n       56    0.000    0.000    0.102    0.002 pathlib.py:1022(read_text)\n      314    0.001    0.000    0.083    0.000 pathlib.py:886(is_file)\n       54    0.072    0.001    0.082    0.002 {method 'read' of '_io.TextIOWrapper' objects}\n      314    0.005    0.000    0.065    0.000 pathlib.py:663(relative_to)\n     3598    0.007    0.000    0.045    0.000 pathlib.py:551(drive)\n     2426    0.005    0.000    0.038    0.000 pathlib.py:407(_load_parts)\n\n\n"
+}

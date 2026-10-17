@@ -36,6 +36,9 @@ class Store:
         self.runs: dict[str, dict] = {}
         self.processes: dict[str, subprocess.Popen] = {}
         self.logs = {}
+        # Cache only image identities, never paths used to serve files. Dataset
+        # paths still go through load_dataset's containment/existence checks.
+        self.image_identities = {}
         self.lock = threading.RLock()
         for metadata in (self.state / "runs").glob("*.json"):
             record = read_json(metadata)
@@ -266,8 +269,18 @@ class Store:
             last_id = run["snapshots"][-1]["id"]
             if last_id != "final":
                 model_path = output / "ui" / "snapshots" / f"{last_id}.json"
-        model_data = read_json(model_path, {})
-        expected = {item["id"]: item["name"] for item in model_data.get("images", [])}
+        try:
+            stat = model_path.stat()
+            signature = (stat.st_mtime_ns, stat.st_size)
+        except OSError:
+            signature = None
+        cached = self.image_identities.get(model_path)
+        if cached is not None and cached[0] == signature:
+            expected = cached[1]
+        else:
+            model_data = read_json(model_path, {})
+            expected = {item["id"]: item["name"] for item in model_data.get("images", [])}
+            self.image_identities[model_path] = (signature, expected)
         candidates = [Path(preferred)] + [path for path in self.datasets.values() if path != Path(preferred)]
         for path in candidates:
             try:

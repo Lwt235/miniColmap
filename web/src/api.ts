@@ -34,6 +34,7 @@ export const number = (value: number | null | undefined, digits = 3) =>
 export const stageName = (stage: string) =>
   ({
     loading: '读取数据',
+    dataset_loading: '数据加载与准备',
     features: '提取特征',
     feature_extraction: '提取特征',
     matching: '特征匹配',

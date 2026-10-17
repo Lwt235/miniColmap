@@ -1,0 +1,73 @@
+{
+  "baseline": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_102109_14c560",
+  "requests": {
+    "/api/runs/:run": 314,
+    "/api/runs/:run/scene": 46,
+    "/api/runs/:run/reports": 7,
+    "/api/runs/:run/artifacts": 7
+  },
+  "runId": "6c31ecc146cf4320",
+  "timings": {
+    "status": "completed",
+    "unit": "seconds",
+    "total_seconds": 177.3856303000066,
+    "stages_seconds": {
+      "dataset_loading": 0.032123399985721335,
+      "features": 4.689062100020237,
+      "pair_geometry": 110.63089030000265,
+      "tracks": 0.11894309998024255,
+      "initialization": 30.87535950000165,
+      "incremental_mapping": 28.67704930002219,
+      "export": 2.362202599993907
+    },
+    "details": {
+      "descriptor_matching": {
+        "seconds": 3.891949100070633,
+        "calls": 1081
+      },
+      "fundamental_ransac": {
+        "seconds": 100.36226009996608,
+        "calls": 515
+      }
+    }
+  },
+  "summary": {
+    "image_count": 47,
+    "registered_images": 47,
+    "point_count": 6570,
+    "observation_count": 27540,
+    "mean_reprojection_error_px": 0.39815613159293645,
+    "median_reprojection_error_px": 0.1964641881947654,
+    "p95_reprojection_error_px": 1.5560393868399958,
+    "positive_depth_ratio": 1,
+    "unregistered_image_ids": [],
+    "timings": {
+      "status": "completed",
+      "unit": "seconds",
+      "total_seconds": 177.3856303000066,
+      "stages_seconds": {
+        "dataset_loading": 0.032123399985721335,
+        "features": 4.689062100020237,
+        "pair_geometry": 110.63089030000265,
+        "tracks": 0.11894309998024255,
+        "initialization": 30.87535950000165,
+        "incremental_mapping": 28.67704930002219,
+        "export": 2.362202599993907
+      },
+      "details": {
+        "descriptor_matching": {
+          "seconds": 3.891949100070633,
+          "calls": 1081
+        },
+        "fundamental_ransac": {
+          "seconds": 100.36226009996608,
+          "calls": 515
+        }
+      }
+    },
+    "elapsed_seconds": 177.3856303000066,
+    "tracks": 6740
+  },
+  "output": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_111031_6c31ec",
+  "error": "apiRequestContext.get: Timeout 30000ms exceeded.\nCall log:\n\u001b[2m  - → GET http://127.0.0.1:8765/api/runs/6c31ecc146cf4320/artifacts/runtime.json\u001b[22m\n\u001b[2m    - user-agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0\u001b[22m\n\u001b[2m    - accept: */*\u001b[22m\n\u001b[2m    - accept-encoding: gzip,deflate,br\u001b[22m\n\n    at get (D:\\yy_folder\\miniColmap\\web\\e2e\\performance.mjs:44:39)\n    at D:\\yy_folder\\miniColmap\\web\\e2e\\performance.mjs:94:26"
+}

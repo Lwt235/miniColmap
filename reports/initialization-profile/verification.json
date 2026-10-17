@@ -1,0 +1,28 @@
+{
+  "default-8.json": {
+    "measurements": 4,
+    "all_initial_snapshot_hashes_match": true
+  },
+  "single-8.json": {
+    "measurements": 4,
+    "all_initial_snapshot_hashes_match": true
+  },
+  "default-47.json": {
+    "measurements": 4,
+    "all_initial_snapshot_hashes_match": true
+  },
+  "cprofile-8.json": {
+    "measurements": 1,
+    "all_initial_snapshot_hashes_match": true
+  },
+  "ui-worker-8": {
+    "final_model_exactly_equal": true,
+    "initialization_stage_seconds": 3.586311199993361,
+    "initialize_map_seconds": 3.5041032999870367,
+    "extra_seconds": 0.08220790000632405
+  },
+  "script-smoke-8.json": {
+    "measurements": 1,
+    "all_initial_snapshot_hashes_match": true
+  }
+}

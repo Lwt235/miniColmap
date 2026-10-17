@@ -96,11 +96,15 @@ try {
   await assertAlignedPixels('Aligned pose remains stable without input');
   report.alignsWithoutLock = true;
   let previous = await hash();
-  await drag('left', 0.64, 0.61);
+  // The aligned camera has a narrow calibrated FOV. Large orbit steps move
+  // the entire model off-screen, making later blank-frame hashes inconclusive.
+  await drag('left', 0.51, 0.505);
   assert.notEqual(await hash(), previous);
   report.rotation = true;
+  await align.click();
+  await page.waitForTimeout(400);
   previous = await hash();
-  await drag('right', 0.58, 0.54);
+  await drag('right', 0.54, 0.53);
   assert.notEqual(await hash(), previous);
   report.pan = true;
   previous = await hash();

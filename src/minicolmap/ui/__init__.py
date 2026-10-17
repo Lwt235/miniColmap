@@ -27,4 +27,4 @@ def run(*, host: str = "127.0.0.1", port: int = 8765,
         timer = threading.Timer(1.0, lambda: webbrowser.open(f"http://127.0.0.1:{port}"))
         timer.daemon = True
         timer.start()
-    uvicorn.run(app, host=host, port=port)
+    uvicorn.run(app, host=host, port=port, access_log=False)

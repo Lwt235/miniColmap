@@ -1,0 +1,1761 @@
+{
+  "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]",
+  "numpy": "2.5.4",
+  "scipy": "1.18.1",
+  "cpu_count": 20,
+  "blas": [
+    {
+      "library": "D:\\yy_folder\\miniColmap\\.venv\\Lib\\site-packages\\numpy.libs\\libscipy_openblas64_-ed4f167a5330424524f45258e7ca2c8d.dll",
+      "threads": 1
+    },
+    {
+      "library": "D:\\yy_folder\\miniColmap\\.venv\\Lib\\site-packages\\scipy.libs\\libscipy_openblas-197ee2fc9b4d071f7e048078cac74115.dll",
+      "threads": 1
+    }
+  ],
+  "thread_environment": {
+    "OPENBLAS_NUM_THREADS": "1",
+    "OMP_NUM_THREADS": "1",
+    "MKL_NUM_THREADS": "1"
+  },
+  "profile_enabled": false,
+  "note": "Details are inclusive and overlap. Replay excludes feature extraction, matching, UI and disk writes.",
+  "measurements": [
+    {
+      "run": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_195408_5c541f",
+      "repeat": 1,
+      "wall_seconds": 6.085064499988221,
+      "cpu_seconds": 5.6875,
+      "pairs": 22,
+      "tracks": 1285,
+      "selected_images": [
+        19,
+        20
+      ],
+      "initial_points": 425,
+      "model_sha256": "3690deda17ff3b5e93c352ebc6c631700bda9010a52d3aed20946734a3a1acda",
+      "refinement_nfev": 335,
+      "details": {
+        "numpy_solve": {
+          "seconds": 0.0042547001503407955,
+          "cpu_seconds": 0.0,
+          "calls": 110
+        },
+        "pose_triangulation": {
+          "seconds": 0.8753882000746671,
+          "cpu_seconds": 0.828125,
+          "calls": 88
+        },
+        "einx_dot": {
+          "seconds": 0.9069644999399316,
+          "cpu_seconds": 0.78125,
+          "calls": 176
+        },
+        "recover_relative_pose": {
+          "seconds": 1.446106800052803,
+          "cpu_seconds": 1.234375,
+          "calls": 22
+        },
+        "mapper_triangulation": {
+          "seconds": 0.21775739997974597,
+          "cpu_seconds": 0.21875,
+          "calls": 22
+        },
+        "lsmr": {
+          "seconds": 1.849698400037596,
+          "cpu_seconds": 1.90625,
+          "calls": 261,
+          "iterations": 18658
+        },
+        "refine_two_view": {
+          "seconds": 3.9788164999336004,
+          "cpu_seconds": 3.765625,
+          "calls": 22
+        },
+        "validate_map": {
+          "seconds": 0.011079000018071383,
+          "cpu_seconds": 0.015625,
+          "calls": 1
+        }
+      },
+      "candidates": [
+        {
+          "pose_seconds": 0.22041780001018196,
+          "matches": 413,
+          "refine_seconds": 0.12378180000814609,
+          "seed_points": 413,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.9209371735374585,
+          "candidate_mean_px": 0.10660627725929422,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            14
+          ]
+        },
+        {
+          "pose_seconds": 0.05663010000716895,
+          "matches": 178,
+          "refine_seconds": 0.10583620000397786,
+          "seed_points": 178,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 5.539044167847595,
+          "candidate_mean_px": 0.13059054450497906,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.03074159999960102,
+          "matches": 66,
+          "refine_seconds": 0.14108180001494475,
+          "seed_points": 66,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 10,
+          "before_mean_px": 4.467413219842179,
+          "candidate_mean_px": 0.15802622094181884,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.12129440001444891,
+          "matches": 399,
+          "refine_seconds": 0.12370860000373796,
+          "seed_points": 399,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 1.8502563612259368,
+          "candidate_mean_px": 0.1112230437675868,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.05585780000546947,
+          "matches": 175,
+          "refine_seconds": 0.22196850000182167,
+          "seed_points": 175,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 16,
+          "before_mean_px": 2.6019601387257443,
+          "candidate_mean_px": 0.15197021168556696,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.03623420000076294,
+          "matches": 76,
+          "refine_seconds": 0.2947295999911148,
+          "seed_points": 76,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 28,
+          "before_mean_px": 11.941525208775225,
+          "candidate_mean_px": 0.1849308869808153,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.03384419999201782,
+          "matches": 37,
+          "refine_seconds": 0.17991129998699762,
+          "seed_points": 37,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 19,
+          "before_mean_px": 7.453389152782955,
+          "candidate_mean_px": 0.2060377873540416,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.12341349999769591,
+          "matches": 420,
+          "refine_seconds": 0.12365130000398494,
+          "seed_points": 420,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 4,
+          "before_mean_px": 0.1508699700044386,
+          "candidate_mean_px": 0.07850622687478272,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.07571510001434945,
+          "matches": 208,
+          "refine_seconds": 0.06390969999483787,
+          "seed_points": 208,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 1.6369625284657325,
+          "candidate_mean_px": 0.115180597475479,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.05306609999388456,
+          "matches": 108,
+          "refine_seconds": 0.14430349998292513,
+          "seed_points": 108,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 12,
+          "before_mean_px": 6.420167552273962,
+          "candidate_mean_px": 0.15909257079249223,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.0396300999855157,
+          "matches": 52,
+          "refine_seconds": 0.13766959999338724,
+          "seed_points": 52,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 13,
+          "before_mean_px": 3.002601202574482,
+          "candidate_mean_px": 0.12330096498911843,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.029487700026948005,
+          "matches": 35,
+          "refine_seconds": 0.35273630000301637,
+          "seed_points": 35,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 36,
+          "before_mean_px": 11.907515691319778,
+          "candidate_mean_px": 0.1515083450339576,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.099348200019449,
+          "matches": 377,
+          "refine_seconds": 0.49650609999662265,
+          "seed_points": 377,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 30,
+          "before_mean_px": 2.1265428379910203,
+          "candidate_mean_px": 0.11977468841145676,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.04864979998092167,
+          "matches": 215,
+          "refine_seconds": 0.1935319000040181,
+          "seed_points": 215,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 19,
+          "before_mean_px": 6.045517510888618,
+          "candidate_mean_px": 0.11754981290835655,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.04723170000943355,
+          "matches": 138,
+          "refine_seconds": 0.19536669997614808,
+          "seed_points": 138,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 21,
+          "before_mean_px": 6.716085386246921,
+          "candidate_mean_px": 0.1125795209928543,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.03270670000347309,
+          "matches": 85,
+          "refine_seconds": 0.17600259999744594,
+          "seed_points": 85,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 31,
+          "before_mean_px": 7.6160256835743025,
+          "candidate_mean_px": 0.17536692338912657,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.05749609999475069,
+          "matches": 378,
+          "refine_seconds": 0.11669260001508519,
+          "seed_points": 378,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.5268634186987861,
+          "candidate_mean_px": 0.07320555394716886,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.04041080002207309,
+          "matches": 243,
+          "refine_seconds": 0.20205549997626804,
+          "seed_points": 243,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 21,
+          "before_mean_px": 3.6539238067326725,
+          "candidate_mean_px": 0.09789567502220242,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.05239820000133477,
+          "matches": 152,
+          "refine_seconds": 0.14520649999030866,
+          "seed_points": 152,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 18,
+          "before_mean_px": 3.4783205544371363,
+          "candidate_mean_px": 0.15715710584899156,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.07252859999425709,
+          "matches": 407,
+          "refine_seconds": 0.1658523999794852,
+          "seed_points": 407,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 11,
+          "before_mean_px": 1.0291663447290336,
+          "candidate_mean_px": 0.0711535699997067,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.04861460000392981,
+          "matches": 255,
+          "refine_seconds": 0.08855889999540523,
+          "seed_points": 255,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 9,
+          "before_mean_px": 2.1795602054025207,
+          "candidate_mean_px": 0.09924830366330918,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.07038949997513555,
+          "matches": 430,
+          "refine_seconds": 0.18575510001392104,
+          "seed_points": 430,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 11,
+          "before_mean_px": 0.9519112101630957,
+          "candidate_mean_px": 0.08801845392426982,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            19,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "run": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_093144_43b5d5",
+      "repeat": 1,
+      "wall_seconds": 4.452019399992423,
+      "cpu_seconds": 4.125,
+      "pairs": 22,
+      "tracks": 1283,
+      "selected_images": [
+        19,
+        20
+      ],
+      "initial_points": 425,
+      "model_sha256": "4c8bdcdc0579f59a8f433b227bceffa3e7dccbc2a1706805251ec6df4d168297",
+      "refinement_nfev": 275,
+      "details": {
+        "numpy_solve": {
+          "seconds": 0.00346120007452555,
+          "cpu_seconds": 0.015625,
+          "calls": 110
+        },
+        "pose_triangulation": {
+          "seconds": 0.748521100031212,
+          "cpu_seconds": 0.671875,
+          "calls": 88
+        },
+        "einx_dot": {
+          "seconds": 0.1851069998810999,
+          "cpu_seconds": 0.125,
+          "calls": 176
+        },
+        "recover_relative_pose": {
+          "seconds": 0.8662603000120725,
+          "cpu_seconds": 0.71875,
+          "calls": 22
+        },
+        "mapper_triangulation": {
+          "seconds": 0.16935970005579293,
+          "cpu_seconds": 0.171875,
+          "calls": 22
+        },
+        "lsmr": {
+          "seconds": 1.540538099798141,
+          "cpu_seconds": 1.375,
+          "calls": 218,
+          "iterations": 16052
+        },
+        "refine_two_view": {
+          "seconds": 3.2634377999638673,
+          "cpu_seconds": 3.09375,
+          "calls": 22
+        },
+        "validate_map": {
+          "seconds": 0.00803620001534,
+          "cpu_seconds": 0.0,
+          "calls": 1
+        }
+      },
+      "candidates": [
+        {
+          "pose_seconds": 0.0674762999988161,
+          "matches": 413,
+          "refine_seconds": 0.10763310000766069,
+          "seed_points": 413,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.8597718838749968,
+          "candidate_mean_px": 0.10660629817906263,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            14
+          ]
+        },
+        {
+          "pose_seconds": 0.036949200002709404,
+          "matches": 178,
+          "refine_seconds": 0.14863329997751862,
+          "seed_points": 178,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 12,
+          "before_mean_px": 4.370647030953434,
+          "candidate_mean_px": 0.13059054796837843,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.0419975999975577,
+          "matches": 65,
+          "refine_seconds": 0.13733510000747629,
+          "seed_points": 65,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 16,
+          "before_mean_px": 10.694252237132394,
+          "candidate_mean_px": 0.1417076723258264,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.08347790001425892,
+          "matches": 399,
+          "refine_seconds": 0.16490540001541376,
+          "seed_points": 399,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 0.7453677267885122,
+          "candidate_mean_px": 0.1005490934444602,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.03747229999862611,
+          "matches": 175,
+          "refine_seconds": 0.40301999999792315,
+          "seed_points": 175,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 28,
+          "before_mean_px": 4.093360584253992,
+          "candidate_mean_px": 0.15197017105717103,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.04221799998776987,
+          "matches": 75,
+          "refine_seconds": 0.18130620001466013,
+          "seed_points": 75,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 21,
+          "before_mean_px": 7.587040730625031,
+          "candidate_mean_px": 0.13769216679401428,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.029472800000803545,
+          "matches": 36,
+          "refine_seconds": 0.05303800001274794,
+          "seed_points": 36,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 6.103984975664626,
+          "candidate_mean_px": 0.21133350791763578,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.06634920000215061,
+          "matches": 420,
+          "refine_seconds": 0.0798932000179775,
+          "seed_points": 420,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 4,
+          "before_mean_px": 0.1508699700044386,
+          "candidate_mean_px": 0.07850622687478272,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.02434890001313761,
+          "matches": 208,
+          "refine_seconds": 0.1865426999866031,
+          "seed_points": 208,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 16,
+          "before_mean_px": 2.456484615575891,
+          "candidate_mean_px": 0.11518059539499816,
+          "message": "Both `ftol` and `xtol` termination conditions are satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.02643759999773465,
+          "matches": 107,
+          "refine_seconds": 0.06991649998235516,
+          "seed_points": 107,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 7,
+          "before_mean_px": 3.92784740100073,
+          "candidate_mean_px": 0.11337589449527355,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.007396300003165379,
+          "matches": 52,
+          "refine_seconds": 0.04210730001796037,
+          "seed_points": 52,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.9589913471534686,
+          "candidate_mean_px": 0.12330095987372684,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.011205199989490211,
+          "matches": 35,
+          "refine_seconds": 0.25250219998997636,
+          "seed_points": 35,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 30,
+          "before_mean_px": 8.799804535940337,
+          "candidate_mean_px": 0.15150847893551334,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.06117970001650974,
+          "matches": 377,
+          "refine_seconds": 0.1174872999836225,
+          "seed_points": 377,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.4018218885633972,
+          "candidate_mean_px": 0.09006449291519647,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.03370339999673888,
+          "matches": 215,
+          "refine_seconds": 0.16802589999861084,
+          "seed_points": 215,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 18,
+          "before_mean_px": 4.657513403623075,
+          "candidate_mean_px": 0.11754981831588701,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.02004889998352155,
+          "matches": 138,
+          "refine_seconds": 0.0513978999806568,
+          "seed_points": 138,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 2.646555949176057,
+          "candidate_mean_px": 0.11257951489833697,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.01126310002291575,
+          "matches": 85,
+          "refine_seconds": 0.20017409999854863,
+          "seed_points": 85,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 30,
+          "before_mean_px": 6.153205242831817,
+          "candidate_mean_px": 0.17536691034139962,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.048302500013960525,
+          "matches": 378,
+          "refine_seconds": 0.107867399987299,
+          "seed_points": 378,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 0.5952581740999523,
+          "candidate_mean_px": 0.07320555188679721,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.027197199990041554,
+          "matches": 243,
+          "refine_seconds": 0.0680632000148762,
+          "seed_points": 243,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.5724641170602786,
+          "candidate_mean_px": 0.09789569030222968,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.020116300001973286,
+          "matches": 152,
+          "refine_seconds": 0.09826129997964017,
+          "seed_points": 152,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 13,
+          "before_mean_px": 5.318506694545823,
+          "candidate_mean_px": 0.1571571429784944,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.055649799993261695,
+          "matches": 407,
+          "refine_seconds": 0.16457389999413863,
+          "seed_points": 407,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 11,
+          "before_mean_px": 1.0291663447290336,
+          "candidate_mean_px": 0.0711535699997067,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.04768250000779517,
+          "matches": 254,
+          "refine_seconds": 0.06905920000281185,
+          "seed_points": 254,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 1.8242616505802023,
+          "candidate_mean_px": 0.08315112656631796,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.06631559997913428,
+          "matches": 430,
+          "refine_seconds": 0.3916945999953896,
+          "seed_points": 430,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 20,
+          "before_mean_px": 1.4992812652890444,
+          "candidate_mean_px": 0.0880184672312638,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            19,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "run": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_093144_43b5d5",
+      "repeat": 2,
+      "wall_seconds": 4.416744599991944,
+      "cpu_seconds": 4.21875,
+      "pairs": 22,
+      "tracks": 1283,
+      "selected_images": [
+        19,
+        20
+      ],
+      "initial_points": 425,
+      "model_sha256": "4c8bdcdc0579f59a8f433b227bceffa3e7dccbc2a1706805251ec6df4d168297",
+      "refinement_nfev": 275,
+      "details": {
+        "numpy_solve": {
+          "seconds": 0.003398099768674001,
+          "cpu_seconds": 0.0,
+          "calls": 110
+        },
+        "pose_triangulation": {
+          "seconds": 0.8357628999801818,
+          "cpu_seconds": 0.828125,
+          "calls": 88
+        },
+        "einx_dot": {
+          "seconds": 0.021413000067695975,
+          "cpu_seconds": 0.0,
+          "calls": 176
+        },
+        "recover_relative_pose": {
+          "seconds": 0.8696937000204343,
+          "cpu_seconds": 0.84375,
+          "calls": 22
+        },
+        "mapper_triangulation": {
+          "seconds": 0.20537159996456467,
+          "cpu_seconds": 0.1875,
+          "calls": 22
+        },
+        "lsmr": {
+          "seconds": 1.517815899773268,
+          "cpu_seconds": 1.40625,
+          "calls": 218,
+          "iterations": 16052
+        },
+        "refine_two_view": {
+          "seconds": 3.2723261000064667,
+          "cpu_seconds": 3.09375,
+          "calls": 22
+        },
+        "validate_map": {
+          "seconds": 0.005838100012624636,
+          "cpu_seconds": 0.015625,
+          "calls": 1
+        }
+      },
+      "candidates": [
+        {
+          "pose_seconds": 0.05610669997986406,
+          "matches": 413,
+          "refine_seconds": 0.08705859998008236,
+          "seed_points": 413,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.8597718838749968,
+          "candidate_mean_px": 0.10660629817906263,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            14
+          ]
+        },
+        {
+          "pose_seconds": 0.02224910000222735,
+          "matches": 178,
+          "refine_seconds": 0.1050804000115022,
+          "seed_points": 178,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 12,
+          "before_mean_px": 4.370647030953434,
+          "candidate_mean_px": 0.13059054796837843,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.009206399990944192,
+          "matches": 65,
+          "refine_seconds": 0.161305599991465,
+          "seed_points": 65,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 16,
+          "before_mean_px": 10.694252237132394,
+          "candidate_mean_px": 0.1417076723258264,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.04840810000314377,
+          "matches": 399,
+          "refine_seconds": 0.11269960002391599,
+          "seed_points": 399,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 0.7453677267885122,
+          "candidate_mean_px": 0.1005490934444602,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.025365600013174117,
+          "matches": 175,
+          "refine_seconds": 0.42254030000185594,
+          "seed_points": 175,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 28,
+          "before_mean_px": 4.093360584253992,
+          "candidate_mean_px": 0.15197017105717103,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.011722700000973418,
+          "matches": 75,
+          "refine_seconds": 0.14960919998702593,
+          "seed_points": 75,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 21,
+          "before_mean_px": 7.587040730625031,
+          "candidate_mean_px": 0.13769216679401428,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.012204600003315136,
+          "matches": 36,
+          "refine_seconds": 0.06358270000782795,
+          "seed_points": 36,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 6.103984975664626,
+          "candidate_mean_px": 0.21133350791763578,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.04740000001038425,
+          "matches": 420,
+          "refine_seconds": 0.07525299998815171,
+          "seed_points": 420,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 4,
+          "before_mean_px": 0.1508699700044386,
+          "candidate_mean_px": 0.07850622687478272,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.023051700001815334,
+          "matches": 208,
+          "refine_seconds": 0.125973200018052,
+          "seed_points": 208,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 16,
+          "before_mean_px": 2.456484615575891,
+          "candidate_mean_px": 0.11518059539499816,
+          "message": "Both `ftol` and `xtol` termination conditions are satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.012879399990197271,
+          "matches": 107,
+          "refine_seconds": 0.05328469999949448,
+          "seed_points": 107,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 7,
+          "before_mean_px": 3.92784740100073,
+          "candidate_mean_px": 0.11337589449527355,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.008673000003909692,
+          "matches": 52,
+          "refine_seconds": 0.039775699988240376,
+          "seed_points": 52,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.9589913471534686,
+          "candidate_mean_px": 0.12330095987372684,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.0053709000058006495,
+          "matches": 35,
+          "refine_seconds": 0.1690888999728486,
+          "seed_points": 35,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 30,
+          "before_mean_px": 8.799804535940337,
+          "candidate_mean_px": 0.15150847893551334,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.08324700000230223,
+          "matches": 377,
+          "refine_seconds": 0.10793580001336522,
+          "seed_points": 377,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.4018218885633972,
+          "candidate_mean_px": 0.09006449291519647,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.04793709999648854,
+          "matches": 215,
+          "refine_seconds": 0.18915849999757484,
+          "seed_points": 215,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 18,
+          "before_mean_px": 4.657513403623075,
+          "candidate_mean_px": 0.11754981831588701,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.017932799994014204,
+          "matches": 138,
+          "refine_seconds": 0.048671600001398474,
+          "seed_points": 138,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 2.646555949176057,
+          "candidate_mean_px": 0.11257951489833697,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.012025700008962303,
+          "matches": 85,
+          "refine_seconds": 0.21397100001922809,
+          "seed_points": 85,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 30,
+          "before_mean_px": 6.153205242831817,
+          "candidate_mean_px": 0.17536691034139962,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.0810813000134658,
+          "matches": 378,
+          "refine_seconds": 0.1855275999987498,
+          "seed_points": 378,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 0.5952581740999523,
+          "candidate_mean_px": 0.07320555188679721,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.05847190000349656,
+          "matches": 243,
+          "refine_seconds": 0.10645770002156496,
+          "seed_points": 243,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.5724641170602786,
+          "candidate_mean_px": 0.09789569030222968,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.039276800001971424,
+          "matches": 152,
+          "refine_seconds": 0.14683849998982623,
+          "seed_points": 152,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 13,
+          "before_mean_px": 5.318506694545823,
+          "candidate_mean_px": 0.1571571429784944,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.10835870000300929,
+          "matches": 407,
+          "refine_seconds": 0.2552995999867562,
+          "seed_points": 407,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 11,
+          "before_mean_px": 1.0291663447290336,
+          "candidate_mean_px": 0.0711535699997067,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.04764279999653809,
+          "matches": 254,
+          "refine_seconds": 0.12782270001480356,
+          "seed_points": 254,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 1.8242616505802023,
+          "candidate_mean_px": 0.08315112656631796,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.09108139999443665,
+          "matches": 430,
+          "refine_seconds": 0.3253911999927368,
+          "seed_points": 430,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 20,
+          "before_mean_px": 1.4992812652890444,
+          "candidate_mean_px": 0.0880184672312638,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            19,
+            20
+          ]
+        }
+      ]
+    },
+    {
+      "run": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261016_195408_5c541f",
+      "repeat": 2,
+      "wall_seconds": 4.912198000005446,
+      "cpu_seconds": 4.734375,
+      "pairs": 22,
+      "tracks": 1285,
+      "selected_images": [
+        19,
+        20
+      ],
+      "initial_points": 425,
+      "model_sha256": "3690deda17ff3b5e93c352ebc6c631700bda9010a52d3aed20946734a3a1acda",
+      "refinement_nfev": 335,
+      "details": {
+        "numpy_solve": {
+          "seconds": 0.0031273000058718026,
+          "cpu_seconds": 0.0,
+          "calls": 110
+        },
+        "pose_triangulation": {
+          "seconds": 0.7812648001126945,
+          "cpu_seconds": 0.734375,
+          "calls": 88
+        },
+        "einx_dot": {
+          "seconds": 0.020974699989892542,
+          "cpu_seconds": 0.015625,
+          "calls": 176
+        },
+        "recover_relative_pose": {
+          "seconds": 0.8113816999248229,
+          "cpu_seconds": 0.78125,
+          "calls": 22
+        },
+        "mapper_triangulation": {
+          "seconds": 0.18175750004593283,
+          "cpu_seconds": 0.1875,
+          "calls": 22
+        },
+        "lsmr": {
+          "seconds": 1.7859443000343163,
+          "cpu_seconds": 1.75,
+          "calls": 261,
+          "iterations": 18658
+        },
+        "refine_two_view": {
+          "seconds": 3.8466622999694664,
+          "cpu_seconds": 3.65625,
+          "calls": 22
+        },
+        "validate_map": {
+          "seconds": 0.005635900015477091,
+          "cpu_seconds": 0.015625,
+          "calls": 1
+        }
+      },
+      "candidates": [
+        {
+          "pose_seconds": 0.048441799997817725,
+          "matches": 413,
+          "refine_seconds": 0.0821490999951493,
+          "seed_points": 413,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.9209371735374585,
+          "candidate_mean_px": 0.10660627725929422,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            14
+          ]
+        },
+        {
+          "pose_seconds": 0.019620200007921085,
+          "matches": 178,
+          "refine_seconds": 0.06363429999328218,
+          "seed_points": 178,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 6,
+          "before_mean_px": 5.539044167847595,
+          "candidate_mean_px": 0.13059054450497906,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.008310099976370111,
+          "matches": 66,
+          "refine_seconds": 0.06214870000258088,
+          "seed_points": 66,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 10,
+          "before_mean_px": 4.467413219842179,
+          "candidate_mean_px": 0.15802622094181884,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            13,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.045170299999881536,
+          "matches": 399,
+          "refine_seconds": 0.09187390000442974,
+          "seed_points": 399,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 1.8502563612259368,
+          "candidate_mean_px": 0.1112230437675868,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            15
+          ]
+        },
+        {
+          "pose_seconds": 0.02267310000024736,
+          "matches": 175,
+          "refine_seconds": 0.12128459999803454,
+          "seed_points": 175,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 16,
+          "before_mean_px": 2.6019601387257443,
+          "candidate_mean_px": 0.15197021168556696,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.009827800007769838,
+          "matches": 76,
+          "refine_seconds": 0.2280136999906972,
+          "seed_points": 76,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 28,
+          "before_mean_px": 11.941525208775225,
+          "candidate_mean_px": 0.1849308869808153,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.003982700000051409,
+          "matches": 37,
+          "refine_seconds": 0.11127130000386387,
+          "seed_points": 37,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 19,
+          "before_mean_px": 7.453389152782955,
+          "candidate_mean_px": 0.2060377873540416,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            14,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.08816519999527372,
+          "matches": 420,
+          "refine_seconds": 0.095931699994253,
+          "seed_points": 420,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 4,
+          "before_mean_px": 0.1508699700044386,
+          "candidate_mean_px": 0.07850622687478272,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            16
+          ]
+        },
+        {
+          "pose_seconds": 0.03319200000260025,
+          "matches": 208,
+          "refine_seconds": 0.08996910002315417,
+          "seed_points": 208,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 1.6369625284657325,
+          "candidate_mean_px": 0.115180597475479,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.029960199986817315,
+          "matches": 108,
+          "refine_seconds": 0.13055609998991713,
+          "seed_points": 108,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 12,
+          "before_mean_px": 6.420167552273962,
+          "candidate_mean_px": 0.15909257079249223,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.008504700002958998,
+          "matches": 52,
+          "refine_seconds": 0.0976086999871768,
+          "seed_points": 52,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 13,
+          "before_mean_px": 3.002601202574482,
+          "candidate_mean_px": 0.12330096498911843,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.004742399993119761,
+          "matches": 35,
+          "refine_seconds": 0.3610712999943644,
+          "seed_points": 35,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 36,
+          "before_mean_px": 11.907515691319778,
+          "candidate_mean_px": 0.1515083450339576,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            15,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.043920099997194484,
+          "matches": 377,
+          "refine_seconds": 0.5365599000069778,
+          "seed_points": 377,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 30,
+          "before_mean_px": 2.1265428379910203,
+          "candidate_mean_px": 0.11977468841145676,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            17
+          ]
+        },
+        {
+          "pose_seconds": 0.055956700001843274,
+          "matches": 215,
+          "refine_seconds": 0.250133099994855,
+          "seed_points": 215,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 19,
+          "before_mean_px": 6.045517510888618,
+          "candidate_mean_px": 0.11754981290835655,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.03210229999967851,
+          "matches": 138,
+          "refine_seconds": 0.17418539998470806,
+          "seed_points": 138,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 21,
+          "before_mean_px": 6.716085386246921,
+          "candidate_mean_px": 0.1125795209928543,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.01257739998982288,
+          "matches": 85,
+          "refine_seconds": 0.3068319000012707,
+          "seed_points": 85,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 31,
+          "before_mean_px": 7.6160256835743025,
+          "candidate_mean_px": 0.17536692338912657,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            16,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.13411859999177977,
+          "matches": 378,
+          "refine_seconds": 0.2553189000173006,
+          "seed_points": 378,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 5,
+          "before_mean_px": 0.5268634186987861,
+          "candidate_mean_px": 0.07320555394716886,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            18
+          ]
+        },
+        {
+          "pose_seconds": 0.08177369998884387,
+          "matches": 243,
+          "refine_seconds": 0.3563881999871228,
+          "seed_points": 243,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 21,
+          "before_mean_px": 3.6539238067326725,
+          "candidate_mean_px": 0.09789567502220242,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.01908140000887215,
+          "matches": 152,
+          "refine_seconds": 0.0999051000108011,
+          "seed_points": 152,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 18,
+          "before_mean_px": 3.4783205544371363,
+          "candidate_mean_px": 0.15715710584899156,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            17,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.03891299999668263,
+          "matches": 407,
+          "refine_seconds": 0.12743069999851286,
+          "seed_points": 407,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 11,
+          "before_mean_px": 1.0291663447290336,
+          "candidate_mean_px": 0.0711535699997067,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            19
+          ]
+        },
+        {
+          "pose_seconds": 0.02456789999268949,
+          "matches": 255,
+          "refine_seconds": 0.07188549998681992,
+          "seed_points": 255,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 9,
+          "before_mean_px": 2.1795602054025207,
+          "candidate_mean_px": 0.09924830366330918,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            18,
+            20
+          ]
+        },
+        {
+          "pose_seconds": 0.04578009998658672,
+          "matches": 430,
+          "refine_seconds": 0.1325111000041943,
+          "seed_points": 430,
+          "accepted": true,
+          "solver_success": true,
+          "nfev": 11,
+          "before_mean_px": 0.9519112101630957,
+          "candidate_mean_px": 0.08801845392426982,
+          "message": "`ftol` termination condition is satisfied.",
+          "rejection_reason": null,
+          "images": [
+            19,
+            20
+          ]
+        }
+      ]
+    }
+  ]
+}

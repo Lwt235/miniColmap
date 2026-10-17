@@ -41,6 +41,7 @@ type Engine = {
   pickables: THREE.Object3D[];
   pointIndices: number[];
   enterCamera: (source: Camera) => void;
+  invalidate: () => void;
 };
 function dispose(group: THREE.Group) {
   for (const child of [...group.children]) {
@@ -79,6 +80,11 @@ export default function Viewer({
   useEffect(() => {
     if (!host.current) return;
     const parent = host.current;
+    let frame = 0,
+      disposed = false;
+    const invalidate = () => {
+      if (!disposed && !document.hidden && !frame) frame = requestAnimationFrame(draw);
+    };
     let renderer: THREE.WebGLRenderer;
     try {
       renderer = new THREE.WebGLRenderer({
@@ -107,6 +113,7 @@ export default function Viewer({
       value.screenSpacePanning = true;
       value.minDistance = 0.0001;
       value.maxDistance = 1e8;
+      value.addEventListener('change', invalidate);
       return value;
     };
     let controls = createControls();
@@ -123,6 +130,7 @@ export default function Viewer({
       controls.target.copy(target);
       controls.update();
       state.controls = controls;
+      invalidate();
     };
     const layout = () => {
       const width = parent.clientWidth,
@@ -141,6 +149,7 @@ export default function Viewer({
       radius: 1,
       pickables: [],
       pointIndices: [],
+      invalidate,
       enterCamera: (source) => {
         const aligned = alignedView(
           source,
@@ -234,11 +243,14 @@ export default function Viewer({
       if (!w || !h) return;
       renderer.setSize(w, h);
       layout();
+      invalidate();
     });
     resize.observe(parent);
-    let frame = 0;
-    const draw = () => {
-      frame = requestAnimationFrame(draw);
+    function draw() {
+      frame = 0;
+      if (disposed || document.hidden) return;
+      // OrbitControls emits change while damping is active, scheduling the
+      // next frame. A settled, unchanged scene consumes no rendering frames.
       controls.update();
       // Avoid drawing/picking the camera marker around the observer's own lens.
       for (const child of content.children) {
@@ -249,10 +261,13 @@ export default function Viewer({
       }
       renderer.setViewport(0, 0, parent.clientWidth, parent.clientHeight);
       renderer.render(world, camera);
-    };
-    draw();
+    }
+    document.addEventListener('visibilitychange', invalidate);
+    invalidate();
     return () => {
+      disposed = true;
       cancelAnimationFrame(frame);
+      document.removeEventListener('visibilitychange', invalidate);
       resize.disconnect();
       controls.dispose();
       renderer.domElement.removeEventListener('pointerdown', pointerDown);
@@ -273,6 +288,7 @@ export default function Viewer({
     if (!scene) {
       latestCameraViewChange.current(null);
       setVisibleCount(0);
+      e.invalidate();
       return;
     }
     const p = scene.points,
@@ -387,6 +403,7 @@ export default function Viewer({
       e.fit();
       previousRun.current = runId;
     }
+    e.invalidate();
   }, [scene, runId, options, selection]);
   useEffect(() => {
     const source = scene?.cameras.find((c) => c.image_id === cameraViewRequest?.imageId);
@@ -397,6 +414,7 @@ export default function Viewer({
     const e = engine.current;
     if (!e) return;
     dispose(e.highlight);
+    e.invalidate();
     if (!scene || selection?.kind !== 'point') return;
     const index = scene.points.ids.indexOf(selection.id);
     if (index < 0) return;

@@ -122,6 +122,30 @@ def test_configuration_defaults_match_saved_json_and_are_independent():
     assert load_config()["features"]["ratio"] == 0.75
 
 
+@pytest.mark.parametrize('overrides', [
+    {'confidence': 0}, {'confidence': 1}, {'confidence': float('nan')},
+    {'confidence': float('inf')}, {'confidence': True},
+    {'min_trials': 0}, {'min_trials': -1}, {'min_trials': 1.5}, {'min_trials': True},
+])
+def test_configuration_rejects_invalid_adaptive_options(overrides, tmp_path):
+    path = tmp_path / 'adaptive.json'
+    path.write_text(json.dumps({'geometry': overrides}))
+    with pytest.raises(ValueError):
+        load_config(path)
+
+
+def test_configuration_fills_legacy_defaults_and_preserves_hard_cap_policy(tmp_path):
+    path = tmp_path / 'legacy.json'
+    path.write_text(json.dumps({'geometry': {'max_trials': 4}}))
+    config = load_config(path)
+    assert config['geometry']['confidence'] == .99
+    assert config['geometry']['min_trials'] == 20
+    path.write_text(json.dumps({'geometry': {'confidence': 1e-15, 'min_trials': 37, 'max_trials': 4}}))
+    config = load_config(path)
+    assert config['geometry']['confidence'] == 1e-15
+    assert config['geometry']['min_trials'] == 37  # The estimator enforces the hard cap.
+
+
 def test_configuration_accepts_partial_override_and_rejects_invalid_values(tmp_path):
     path = tmp_path / "config.json"
     path.write_text(json.dumps({"features": {"ratio": 0.6}}))

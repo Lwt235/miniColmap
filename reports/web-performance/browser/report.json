@@ -1,0 +1,96 @@
+{
+  "baseline": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_102109_14c560",
+  "requests": {
+    "/api/runs/:run": 320,
+    "/api/runs/:run/scene": 27,
+    "/api/runs/:run/reports": 7,
+    "/api/runs/:run/artifacts": 7
+  },
+  "runId": "e6910ea041774699",
+  "timings": {
+    "status": "completed",
+    "unit": "seconds",
+    "total_seconds": 181.76769229999627,
+    "stages_seconds": {
+      "dataset_loading": 0.03166479998617433,
+      "features": 4.730979399988428,
+      "pair_geometry": 110.47902690002229,
+      "tracks": 0.1281985999958124,
+      "initialization": 32.39543959998991,
+      "incremental_mapping": 31.694577499991283,
+      "export": 2.3078055000223685
+    },
+    "details": {
+      "descriptor_matching": {
+        "seconds": 3.951045199559303,
+        "calls": 1081
+      },
+      "fundamental_ransac": {
+        "seconds": 100.04248420035583,
+        "calls": 515
+      }
+    }
+  },
+  "summary": {
+    "image_count": 47,
+    "registered_images": 47,
+    "point_count": 6570,
+    "observation_count": 27540,
+    "mean_reprojection_error_px": 0.39815613159293645,
+    "median_reprojection_error_px": 0.1964641881947654,
+    "p95_reprojection_error_px": 1.5560393868399958,
+    "positive_depth_ratio": 1,
+    "unregistered_image_ids": [],
+    "timings": {
+      "status": "completed",
+      "unit": "seconds",
+      "total_seconds": 181.76769229999627,
+      "stages_seconds": {
+        "dataset_loading": 0.03166479998617433,
+        "features": 4.730979399988428,
+        "pair_geometry": 110.47902690002229,
+        "tracks": 0.1281985999958124,
+        "initialization": 32.39543959998991,
+        "incremental_mapping": 31.694577499991283,
+        "export": 2.3078055000223685
+      },
+      "details": {
+        "descriptor_matching": {
+          "seconds": 3.951045199559303,
+          "calls": 1081
+        },
+        "fundamental_ransac": {
+          "seconds": 100.04248420035583,
+          "calls": 515
+        }
+      }
+    },
+    "elapsed_seconds": 181.76769229999627,
+    "tracks": 6740
+  },
+  "output": "D:\\yy_folder\\miniColmap\\outputs\\ui_20261017_111907_e6910e",
+  "runtime": {
+    "platform": "win32",
+    "cpu_count": 20,
+    "python_trace_active": false,
+    "qos_policy": "high",
+    "qos_applied": true,
+    "windows_power_throttling": {
+      "before": {
+        "control_mask": 0,
+        "state_mask": 0
+      },
+      "requested": {
+        "control_mask": 1,
+        "state_mask": 0
+      }
+    },
+    "process_cpu_seconds": 221.828125
+  },
+  "finalModelExactlyEqual": true,
+  "idleDrawCalls": 0,
+  "runtimeDownloadSeconds": 0.029,
+  "orbitStillRenders": true,
+  "passed": true,
+  "graphicalChecks": "Read-only reinspection after waiting for the final camera count and scene loading to settle"
+}

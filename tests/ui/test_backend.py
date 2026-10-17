@@ -100,12 +100,88 @@ def test_imported_runs_survive_server_restart(client, tmp_path):
     assert restarted.model(imported["id"])[0].points[17].id == 17
 
 
+def test_timings_report_is_optional_and_downloadable(client, tmp_path):
+    imported = import_model(client, tmp_path)
+    prefix = f"/api/runs/{imported['id']}"
+    assert client.get(prefix + '/reports').json()['timings'] is None
+    output = Path(client.app.state.store.get(imported['id'])['output_path'])
+    timing = {'status': 'completed', 'unit': 'seconds', 'total_seconds': 2.,
+              'stages_seconds': {'features': .5, 'pair_geometry': 1.5},
+              'details': {'fundamental_ransac': {'seconds': 1., 'calls': 3}}}
+    atomic_json(output / 'timings.json', timing)
+    assert client.get(prefix + '/reports').json()['timings'] == timing
+    assert client.get(prefix + '/artifacts/timings.json').json() == timing
+    names = [item['name'] for item in client.get(prefix + '/artifacts').json()]
+    assert 'timings.json' in names
+
+
+def test_status_poll_does_not_rediscover_historical_models(client, monkeypatch):
+    calls = []
+    monkeypatch.setattr(client.app.state.store, 'discover', lambda: calls.append(True))
+    assert client.get('/api/runs').status_code == 200
+    assert not calls
+    assert client.get('/api/runs?discover=true').status_code == 200
+    assert calls == [True]
+
+
+def test_image_identity_cache_invalidates_when_model_changes(tmp_path, monkeypatch):
+    import minicolmap.ui.store as module
+    store = Store(tmp_path)
+    model = model_fixture()
+    output = tmp_path / 'model-output'
+    save_reconstruction(model, output / 'model.json')
+    run = {'dataset_path': str(tmp_path / 'dataset.json'), 'output_path': str(output)}
+    checked = []
+    def dataset(path):
+        checked.append(path)
+        return {'images': model.images, 'image_paths': {}}
+    monkeypatch.setattr(module, 'load_dataset', dataset)
+    reads = []
+    original = module.read_json
+    def read(path, *args):
+        reads.append(path)
+        return original(path, *args)
+    monkeypatch.setattr(module, 'read_json', read)
+    assert store.image_dataset(run) is not None
+    assert store.image_dataset(run) is not None
+    assert len(reads) == 1 and len(checked) == 2
+    changed = json.loads((output / 'model.json').read_text())
+    changed['images'][0]['name'] = 'different-photo.png'
+    atomic_json(output / 'model.json', changed)
+    assert store.image_dataset(run) is None
+    assert len(reads) == 2
+
+
+def test_single_download_checks_path_without_scanning_all_artifacts(client, tmp_path, monkeypatch):
+    run = import_model(client, tmp_path)
+    output = Path(client.app.state.store.get(run['id'])['output_path'])
+    atomic_json(output / 'ui' / 'private.json', {'hidden': True})
+    def unexpected(*args):
+        raise AssertionError('A single download must not enumerate the result tree')
+    monkeypatch.setattr('minicolmap.ui.app.artifact_paths', unexpected)
+    prefix = f"/api/runs/{run['id']}/artifacts/"
+    assert client.get(prefix + 'model.json').status_code == 200
+    assert client.get(prefix + 'ui/private.json').status_code == 404
+    assert client.get(prefix + '%2e%2e/config.json').status_code == 404
+
+
 def test_config_uses_actual_pipeline_validator(client):
     valid = client.post("/api/config/validate", json={"bundle_adjustment": {"enabled": True}})
     assert valid.status_code == 200
     assert valid.json()["features"]["max_features"] == 4000
     assert client.post("/api/config/validate", json={"mapping": {"min_angle_deg": -1}}).status_code == 422
     assert client.post("/api/config/validate", json={"invented": 10}).status_code == 422
+
+
+def test_ui_config_validates_and_returns_adaptive_ransac_parameters(client):
+    defaults = client.get('/api/bootstrap').json()['defaults']['geometry']
+    assert defaults['confidence'] == .99 and defaults['min_trials'] == 20
+    config = client.post('/api/config/validate', json={'geometry': {'confidence': .975, 'min_trials': 37}})
+    assert config.status_code == 200
+    assert config.json()['geometry']['confidence'] == .975
+    assert config.json()['geometry']['min_trials'] == 37
+    for invalid in ({'confidence': 1}, {'confidence': True}, {'min_trials': 0}, {'min_trials': 2.5}):
+        assert client.post('/api/config/validate', json={'geometry': invalid}).status_code == 422
 
 
 def test_photo_import_reuses_calibration_and_serves_only_registered_images(client):

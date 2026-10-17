@@ -199,8 +199,11 @@ def create_app(project_root: Path | None = None):
             raise
 
     @app.get("/api/runs")
-    def runs():
-        store.discover()
+    def runs(discover: bool = False):
+        # Live status reads must not rescan every historical model and dataset.
+        # Bootstrap and the explicit history refresh discover external results.
+        if discover:
+            store.discover()
         return store.list_runs()
 
     @app.post("/api/runs")
@@ -309,7 +312,7 @@ def create_app(project_root: Path | None = None):
     @app.get("/api/runs/{run_id}/reports")
     def reports(run_id: str):
         output = Path(store.get(run_id)["output_path"])
-        result = {name: read_json(output / f"{name}.json") for name in ("pairs", "initialization", "ba", "summary")}
+        result = {name: read_json(output / f"{name}.json") for name in ("pairs", "initialization", "ba", "summary", "timings")}
         result["log"] = None
         log_path = store.state / "logs" / f"{run_id}.log"
         if log_path.exists():
@@ -329,8 +332,8 @@ def create_app(project_root: Path | None = None):
     @app.get("/api/runs/{run_id}/artifacts/{filename:path}")
     def artifact(run_id: str, filename: str):
         output = Path(store.get(run_id)["output_path"])
-        paths = artifact_paths(output)
         if filename in ("sparse.zip", "results.zip"):
+            paths = artifact_paths(output)
             archive = io.BytesIO()
             with zipfile.ZipFile(archive, "w", zipfile.ZIP_DEFLATED) as zipped:
                 for name, path in paths.items():
@@ -338,9 +341,16 @@ def create_app(project_root: Path | None = None):
                         zipped.write(path, name)
             return Response(archive.getvalue(), media_type="application/zip",
                             headers={"Content-Disposition": f'attachment; filename="{filename}"'})
-        if filename not in paths:
+        try:
+            relative = safe_relative(filename)
+        except ValueError as exc:
+            raise KeyError("结果文件不存在") from exc
+        candidate = (output / relative).resolve()
+        if (not candidate.is_relative_to(output.resolve()) or 'ui' in relative.parts
+                or candidate.suffix.lower() not in {'.json', '.ply', '.txt', '.png', '.npz', '.log'}
+                or not candidate.is_file()):
             raise KeyError("结果文件不存在")
-        return FileResponse(paths[filename], filename=paths[filename].name)
+        return FileResponse(candidate, filename=candidate.name)
 
     static = Path(__file__).parent / "static"
     if (static / "index.html").exists():
