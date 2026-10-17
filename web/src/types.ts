@@ -21,7 +21,13 @@ export type Config = {
     f_scale: number;
   };
 };
-export type DatasetSummary = { id: string; name: string; path: string; image_count: number };
+export type DatasetSummary = {
+  id: string;
+  name: string;
+  path: string;
+  image_count: number;
+  pose_count?: number;
+};
 export type Dataset = DatasetSummary & {
   images: {
     id: number;
@@ -37,7 +43,14 @@ export type Snapshot = { id: string; label: string; stage: string };
 export type Run = {
   id: string;
   name: string;
-  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted' | 'imported';
+  status: 'running' | 'completed' | 'failed' | 'cancelled' | 'interrupted' | 'imported' | 'todo';
+  pipeline?: 'sfm' | 'nerf' | '3dgs';
+  source_run_id?: string;
+  source_kind?: 'sfm_result' | 'posed_dataset';
+  source_dataset_id?: string;
+  latest_preview?: RenderPreview;
+  training_metrics?: TrainingMetrics;
+  config?: RenderingConfig;
   stage: string;
   dataset_id?: string;
   registered_images?: number;
@@ -142,3 +155,44 @@ export type Reports = {
   summary: unknown;
 };
 export type LogEntry = { time: string; kind: string; text: string };
+
+export type RenderingConfig = {
+  method: 'nerf' | '3dgs';
+  iterations: number;
+  learning_rate: number;
+  image_downscale: number;
+  rays_per_batch: number;
+  samples_per_ray: number;
+  near: number;
+  far: number;
+  holdout_every: number;
+  seed: number;
+  device: 'cpu' | 'cuda';
+  preview_every: number;
+  nerf: { levels_xyz: number; levels_dir: number; hidden_dim: number };
+  gaussian: {
+    initial_scale: number;
+    initial_opacity: number;
+    max_gaussians: number;
+    densify_every: number;
+  };
+};
+export type TrainingMetrics = { loss?: number; psnr?: number; step?: number; total?: number };
+export type RenderPreview = {
+  url: string;
+  reference_url?: string;
+  image_id?: number;
+  step?: number;
+};
+export type RenderingResult = {
+  pipeline: 'nerf' | '3dgs';
+  status: Run['status'];
+  source_run_id?: string;
+  source_kind?: 'sfm_result' | 'posed_dataset';
+  source_dataset_id?: string;
+  metrics: TrainingMetrics;
+  previews: RenderPreview[];
+  checkpoint_url?: string;
+  gaussians_url?: string;
+  config?: RenderingConfig;
+};

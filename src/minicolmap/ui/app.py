@@ -52,7 +52,7 @@ def validate_dimensions(manifest: Path):
 
 
 def artifact_paths(output: Path):
-    allowed = {".json", ".ply", ".txt", ".png", ".npz", ".log"}
+    allowed = {".json", ".ply", ".txt", ".png", ".npz", ".pt", ".log"}
     if not output.exists():
         return {}
     return {path.relative_to(output).as_posix(): path for path in output.rglob("*")
@@ -221,6 +221,73 @@ def create_app(project_root: Path | None = None):
     def run_info(run_id: str):
         return store.public(store.get(run_id))
 
+    @app.get("/api/rendering/capabilities")
+    def rendering_capabilities():
+        from .rendering import capabilities
+        return capabilities()
+
+    @app.post("/api/rendering/config/validate")
+    async def rendering_config_validate(request: Request):
+        from ..rendering.config import resolve_render_config
+        return resolve_render_config(await request.json())
+
+    @app.post("/api/rendering/runs")
+    async def start_rendering(request: Request):
+        from ..rendering.config import resolve_render_config
+        body = await request.json()
+        if not isinstance(body, dict):
+            raise ValueError("请选择位姿数据集或已有 SfM 结果")
+        sources = [key for key in ("source_run_id", "dataset_id") if key in body]
+        if len(sources) != 1 or not isinstance(body[sources[0]], str):
+            raise ValueError("source_run_id 和 dataset_id 必须且只能指定一项")
+        if "photo_dataset_id" in body and not isinstance(body["photo_dataset_id"], str):
+            raise ValueError("photo_dataset_id 必须是已导入照片数据集 ID")
+        settings = resolve_render_config(body.get("config"))
+        try:
+            return store.start_rendering(body.get("source_run_id"), settings,
+                                         dataset_id=body.get("dataset_id"), photo_dataset_id=body.get("photo_dataset_id"))
+        except RuntimeError as exc:
+            raise HTTPException(409, str(exc)) from exc
+
+    @app.get("/api/rendering/runs/{run_id}/result")
+    def rendering_result(run_id: str):
+        from .rendering import result
+        return result(store, run_id)
+
+    @app.post("/api/rendering/runs/{run_id}/render")
+    async def rendering_preview(run_id: str, request: Request):
+        from ..rendering.pipeline import render_checkpoint
+        from .rendering import public_preview
+        run = store.get(run_id)
+        if run.get("pipeline") not in ("nerf", "3dgs"):
+            raise ValueError("该任务不是 NeRF 或 3DGS 训练")
+        if run["status"] == "running" or any(item["status"] == "running" for item in store.list_runs()):
+            raise HTTPException(409, "请先等待训练结束或取消当前任务，再渲染新视图")
+        body = await request.json()
+        if (not isinstance(body, dict) or set(body) - {"camera", "image_id"}
+                or (("camera" in body) == ("image_id" in body))):
+            raise ValueError("请提供 image_id 或 camera 中的一项")
+        output = Path(run["output_path"])
+        if not (output / "checkpoint.pt").is_file():
+            raise ValueError("该任务尚未产生真实训练 checkpoint")
+        # The renderer owns numerical/camera validation. Running in a thread
+        # keeps status, SSE, and cancellation endpoints responsive.
+        try:
+            preview = await asyncio.to_thread(render_checkpoint, output,
+                                             camera=body.get("camera"), image_id=body.get("image_id"))
+        except NotImplementedError as exc:
+            raise HTTPException(422, {"status": "todo", "message": str(exc)}) from exc
+        except ImportError as exc:
+            raise ValueError(str(exc)) from exc
+        public = public_preview(run_id, output, preview)
+        if public is None:
+            raise ValueError("渲染器未生成有效预览文件")
+        with store.lock:
+            run["latest_preview_record"] = preview
+            run["latest_preview"] = public
+            atomic_json(store.state / "runs" / f"{run_id}.json", run)
+        return public
+
     @app.post("/api/runs/{run_id}/cancel")
     def cancel(run_id: str):
         return store.cancel(run_id)
@@ -347,7 +414,7 @@ def create_app(project_root: Path | None = None):
             raise KeyError("结果文件不存在") from exc
         candidate = (output / relative).resolve()
         if (not candidate.is_relative_to(output.resolve()) or 'ui' in relative.parts
-                or candidate.suffix.lower() not in {'.json', '.ply', '.txt', '.png', '.npz', '.log'}
+                or candidate.suffix.lower() not in {'.json', '.ply', '.txt', '.png', '.npz', '.pt', '.log'}
                 or not candidate.is_file()):
             raise KeyError("结果文件不存在")
         return FileResponse(candidate, filename=candidate.name)

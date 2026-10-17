@@ -29,7 +29,6 @@ def main(metadata: str) -> int:
     from .runtime import configure_worker_runtime
     runtime = configure_worker_runtime()
     cpu_started = time.process_time()
-    from ..pipeline import reconstruct
     state_path = Path(metadata)
     run = json.loads(state_path.read_text(encoding="utf-8"))
     run['runtime'] = runtime
@@ -58,6 +57,13 @@ def main(metadata: str) -> int:
         for key in ("completed", "total", "message"):
             if key in record:
                 run[key] = record[key]
+        if isinstance(record.get("metrics"), dict):
+            run["training_metrics"] = record["metrics"]
+        if isinstance(record.get("preview"), dict):
+            from .rendering import public_preview
+            run["latest_preview_record"] = record["preview"]
+            run["latest_preview"] = public_preview(run["id"], output, record["preview"])
+            record["preview"] = run["latest_preview"]
         if record.get("kind") == "warning" and record.get("message"):
             run.setdefault("warnings", []).append(record["message"])
         atomic_json(state_path, run)
@@ -68,12 +74,21 @@ def main(metadata: str) -> int:
             stream.flush()
 
     try:
-        summary = reconstruct(run["dataset_path"], output, run["config"], on_event=event)
+        is_rendering = run.get("pipeline") in ("nerf", "3dgs")
+        if is_rendering:
+            from ..rendering.pipeline import train
+            summary = train(run["source_model_path"], run["dataset_path"], output, run["config"], on_event=event)
+            atomic_json(output / "summary.json", summary)
+            run["training_metrics"] = summary.get("metrics", run.get("training_metrics", {}))
+        else:
+            from ..pipeline import reconstruct
+            summary = reconstruct(run["dataset_path"], output, run["config"], on_event=event)
         run.update(status="completed", stage="done", **{
             key: summary[key] for key in ("registered_images", "image_count", "point_count")})
         # The final canonical file remains available even if an optional
         # progress observer was disabled after an I/O failure.
-        run["snapshots"].append({"id": "final", "label": "最终结果", "stage": "done"})
+        if not is_rendering:
+            run["snapshots"].append({"id": "final", "label": "最终结果", "stage": "done"})
         if summary.get("unregistered_image_ids"):
             run.setdefault("warnings", []).append("部分图像未注册：" + str(summary["unregistered_image_ids"]))
         ba_path = output / "ba.json"
@@ -83,9 +98,22 @@ def main(metadata: str) -> int:
                 run.setdefault("warnings", []).append("BA 候选已接受，但尚未收敛")
         event({"kind": "complete", "stage": "done", "status": "completed", "summary": summary})
         return 0
+    except NotImplementedError as exc:
+        run.update(status="todo", error=str(exc))
+        event({"kind": "todo", "stage": run["stage"], "status": "todo", "message": str(exc)})
+        status_path = output / "run_status.json"
+        status = json.loads(status_path.read_text(encoding="utf-8")) if status_path.exists() else {}
+        status.update(status="todo", stage=run["stage"], error=str(exc), pipeline=run.get("pipeline", "sfm"))
+        atomic_json(status_path, status)
+        return 2
     except Exception as exc:
         run.update(status="failed", error=str(exc))
         event({"kind": "error", "stage": run["stage"], "status": "failed", "message": str(exc)})
+        if run.get("pipeline") in ("nerf", "3dgs"):
+            status_path = output / "run_status.json"
+            status = json.loads(status_path.read_text(encoding="utf-8")) if status_path.exists() else {}
+            status.update(status="failed", stage=run["stage"], error=str(exc), pipeline=run["pipeline"])
+            atomic_json(status_path, status)
         traceback.print_exc()
         return 1
     finally:

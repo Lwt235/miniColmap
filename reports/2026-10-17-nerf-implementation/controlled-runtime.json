@@ -1,0 +1,20 @@
+{
+  "platform": "win32",
+  "cpu_count": 20,
+  "python_trace_active": false,
+  "qos_policy": "high",
+  "qos_applied": true,
+  "windows_power_throttling": {
+    "before": {
+      "control_mask": 0,
+      "state_mask": 0
+    },
+    "requested": {
+      "control_mask": 1,
+      "state_mask": 0
+    }
+  },
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "peak_allocated_bytes": 32957952,
+  "peak_reserved_bytes": 46137344
+}

@@ -16,6 +16,8 @@ import {
 import type { Camera, DisplayOptions, Scene, Selection } from './types';
 import { cameraCenter, frustumCorners, visiblePointIndices } from './math';
 import { alignedView } from './cameraView';
+import { captureRenderCamera } from './rendering';
+import type { RenderCamera } from './rendering';
 import { number, snapshotName } from './api';
 
 type Props = {
@@ -27,6 +29,8 @@ type Props = {
   onSelect: (s: Selection) => void;
   cameraViewRequest: { imageId: number; version: number } | null;
   onCameraViewChange: (imageId: number | null) => void;
+  onRenderCamera?: (camera: RenderCamera) => void;
+  renderBusy?: boolean;
 };
 type Engine = {
   renderer: THREE.WebGLRenderer;
@@ -65,6 +69,8 @@ export default function Viewer({
   onSelect,
   cameraViewRequest,
   onCameraViewChange,
+  onRenderCamera,
+  renderBusy,
 }: Props) {
   const host = useRef<HTMLDivElement>(null),
     engine = useRef<Engine | null>(null),
@@ -441,7 +447,8 @@ export default function Viewer({
         </span>
       </div>
       <div ref={host} className="canvas-host" />
-      {(!scene || scene.points.ids.length === 0) && (
+      {(!scene ||
+        (scene.points.ids.length === 0 && !scene.cameras.some((camera) => camera.registered))) && (
         <div className="empty-scene">
           <div className="empty-orbit">
             <Layers3 size={32} />
@@ -457,6 +464,19 @@ export default function Viewer({
       )}
       {error && <div className="view-error">{error}</div>}
       <div className="view-toolbar">
+        {onRenderCamera && (
+          <button
+            title="以训练模型渲染当前自由视角（长边 256 px）"
+            aria-label="渲染当前自由视角"
+            disabled={renderBusy || !scene}
+            onClick={() => {
+              if (engine.current) onRenderCamera(captureRenderCamera(engine.current.camera));
+            }}
+          >
+            <CameraIcon size={17} />
+            渲染当前视角
+          </button>
+        )}
         <button
           title="适配完整场景"
           aria-label="适配完整场景"
@@ -656,7 +676,7 @@ export default function Viewer({
           <MousePointer2 size={12} /> {hover || '左键旋转 · 右键平移 · 滚轮缩放'}
         </span>
         <span>
-          坐标单位：重建尺度 <b className="axis-x">X</b>
+          坐标单位：源场景尺度 <b className="axis-x">X</b>
           <b className="axis-y">Y</b>
           <b className="axis-z">Z</b>
         </span>

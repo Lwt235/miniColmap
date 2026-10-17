@@ -1,0 +1,56 @@
+{
+  "fixtureOnly": true,
+  "doesNotValidateLearningAlgorithms": true,
+  "checks": [
+    "nerf TODO remains non-successful",
+    "3dgs interface result and reference preview",
+    "checkpoint download",
+    "history restored after refresh",
+    "free orbit pose renders through camera API",
+    "cancellation"
+  ],
+  "capturedFreeCamera": {
+    "R": [
+      [
+        0.8209496911438463,
+        5.55111512312578e-17,
+        -0.5710005294312985
+      ],
+      [
+        -0.2077019926283147,
+        0.9314962354699374,
+        -0.29862124097853765
+      ],
+      [
+        0.5318848436165959,
+        0.3637509633050259,
+        0.7647115468107007
+      ]
+    ],
+    "t": [
+      0.2855002647156493,
+      0.14931062048926885,
+      1.228451477633706
+    ],
+    "K": [
+      [
+        209.65170530057372,
+        0,
+        127.5
+      ],
+      [
+        0,
+        210.03657992645927,
+        86.5
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "width": 256,
+    "height": 174
+  },
+  "errors": []
+}

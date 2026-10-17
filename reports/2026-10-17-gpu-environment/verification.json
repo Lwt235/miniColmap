@@ -1,0 +1,29 @@
+{
+  "status": "passed",
+  "python": "3.12.7 | packaged by Anaconda, Inc. | (main, Oct  4 2024, 13:17:27) [MSC v.1929 64 bit (AMD64)]",
+  "python_executable": "D:\\yy_folder\\miniColmap\\.venv\\Scripts\\python.exe",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "torch": "2.7.1+cu128",
+  "cuda_runtime": "12.8",
+  "cudnn_version": 90701,
+  "cuda_available": true,
+  "device": "cuda:0",
+  "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "compute_capability": [
+    8,
+    9
+  ],
+  "total_memory_bytes": 8585216000,
+  "free_memory_bytes": 7389315072,
+  "peak_tensor_memory_bytes": 18132480,
+  "nvidia_smi": "NVIDIA GeForce RTX 4060 Laptop GPU, 576.80, 8188",
+  "matrix_cpu_gpu_close": true,
+  "linear_algebra_backward_finite": true,
+  "optimizer": {
+    "steps": 40,
+    "before_mse": 0.05828931927680969,
+    "after_mse": 0.0005693822167813778
+  },
+  "elapsed_seconds": 4.75,
+  "scope": "GPU environment smoke; student NeRF/3DGS algorithms are not implemented or certified"
+}

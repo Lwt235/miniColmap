@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 import threading
@@ -12,7 +13,7 @@ import uuid
 from pathlib import Path
 
 from ..config import load_config
-from ..io import load_dataset, load_reconstruction
+from ..io import load_dataset, load_reconstruction, save_reconstruction
 from ..metrics import reconstruction_summary
 from .worker import atomic_json
 
@@ -68,9 +69,9 @@ class Store:
                     continue
                 run_id = stable_id("result-", output)
                 summary = read_json(output / "summary.json", {})
-                run = {"id": run_id, "name": output.name,
+                run = {"id": run_id, "name": output.name, "pipeline": summary.get("pipeline", status.get("pipeline", "sfm")),
                        "status": "interrupted" if status.get("status") == "running" else
-                       ("failed" if status.get("status") in ("failed", "todo") else "completed"),
+                       (status.get("status") if status.get("status") in ("failed", "todo", "cancelled") else "completed"),
                        "stage": status.get("stage", "done"), "output_path": str(output.resolve()),
                        "snapshots": [], "images_available": False, "warnings": []}
                 run.update({key: value for key, value in summary.items() if key in (
@@ -81,6 +82,21 @@ class Store:
                     run["dataset_path"] = status["dataset"]
                 if (output / "model.json").exists():
                     run["snapshots"] = [{"id": "final", "label": "最终结果", "stage": "done"}]
+                if run["pipeline"] in ("nerf", "3dgs"):
+                    run["source_kind"] = "posed_dataset" if status.get("source_kind") == "posed_dataset" else "sfm_result"
+                    source_model = output / "source_model.json"
+                    if not source_model.is_file() and status.get("source_model"):
+                        source_model = Path(status["source_model"])
+                    run["source_model_path"] = str(source_model)
+                    run["config"] = read_json(output / "config.json", {})
+                    run["training_metrics"] = summary.get("metrics", {})
+                    if source_model.is_file():
+                        label = "标定位姿输入（只读）" if run["source_kind"] == "posed_dataset" else "SfM 输入（只读）"
+                        run["snapshots"] = [{"id": "source", "label": label, "stage": "source"}]
+                    for source_id, source_run in self.runs.items():
+                        if (Path(source_run["output_path"]) / "model.json").resolve() == source_model.resolve():
+                            run["source_run_id"] = source_id
+                            break
                 ba = read_json(output / "ba.json", {})
                 if ba.get("accepted") and not ba.get("solver_success"):
                     run["warnings"].append("BA 候选已接受，但尚未收敛")
@@ -94,6 +110,8 @@ class Store:
                     dataset_id = stable_id("dataset-", path)
                     self.datasets[dataset_id] = path.resolve()
                     run["dataset_id"] = dataset_id
+                    if run.get("source_kind") == "posed_dataset":
+                        run["source_dataset_id"] = dataset_id
                     run["images_available"] = bool(data["image_paths"])
                 else:
                     run["images_available"] = False
@@ -107,8 +125,13 @@ class Store:
 
     def dataset_info(self, dataset_id):
         path, dataset = self.dataset(dataset_id)
+        document = read_json(path, {})
+        pose_count = 0
+        if "poses" in document:
+            from ..rendering.data import load_posed_dataset
+            pose_count = len(load_posed_dataset(path).poses)
         return {"id": dataset_id, "name": path.parent.name + (" / " + path.stem if path.stem != "dataset" else ""),
-                "path": str(path), "image_count": len(dataset["images"]),
+                "path": str(path), "image_count": len(dataset["images"]), "pose_count": pose_count,
                 "images": [{"id": image.id, "name": image.name, "camera_id": image.camera_id,
                             "width": dataset["cameras"][image.camera_id].width,
                             "height": dataset["cameras"][image.camera_id].height,
@@ -123,7 +146,7 @@ class Store:
         for dataset_id in self.datasets:
             try:
                 info = self.dataset_info(dataset_id)
-                datasets.append({key: info[key] for key in ("id", "name", "path", "image_count")})
+                datasets.append({key: info[key] for key in ("id", "name", "path", "image_count", "pose_count")})
             except (OSError, ValueError, KeyError, TypeError):
                 continue
         return {"datasets": datasets, "runs": self.list_runs(), "defaults": load_config()}
@@ -148,7 +171,8 @@ class Store:
             return run
 
     def public(self, run):
-        return {key: value for key, value in run.items() if key not in ("config", "dataset_path")}
+        return {key: value for key, value in run.items()
+                if key not in ("config", "dataset_path", "source_model_path", "latest_preview_record")}
 
     def list_runs(self):
         return [self.public(self.get(run_id)) for run_id in reversed(list(self.runs))]
@@ -161,33 +185,94 @@ class Store:
             path, dataset = self.dataset(dataset_id)
             run_id = uuid.uuid4().hex[:16]
             output = self.root / "outputs" / ("ui_" + time.strftime("%Y%m%d_%H%M%S_") + run_id[:6])
-            run = {"id": run_id, "name": output.name, "status": "running", "stage": "starting",
+            run = {"id": run_id, "name": output.name, "pipeline": "sfm", "status": "running", "stage": "starting",
                    "dataset_id": dataset_id, "dataset_path": str(path), "config": config,
                    "registered_images": 0, "point_count": 0, "image_count": len(dataset["images"]),
                    "elapsed_seconds": 0, "snapshots": [], "images_available": True,
                    "warnings": [], "output_path": str(output.resolve())}
-            metadata = self.state / "runs" / f"{run_id}.json"
+            return self._launch(run)
+
+    def _launch(self, run):
+        """Both reconstruction and rendering share one worker registry and lock."""
+        run_id = run["id"]
+        metadata = self.state / "runs" / f"{run_id}.json"
+        atomic_json(metadata, run)
+        logs_dir = self.state / "logs"
+        logs_dir.mkdir(parents=True, exist_ok=True)
+        log = (logs_dir / f"{run_id}.log").open("wb")
+        env = dict(os.environ)
+        source_root = str(Path(__file__).resolve().parents[2])
+        env["PYTHONPATH"] = source_root + os.pathsep + env.get("PYTHONPATH", "")
+        kwargs = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
+        try:
+            process = subprocess.Popen([sys.executable, "-m", "minicolmap.ui.worker", str(metadata)],
+                                       cwd=self.root, stdout=log, stderr=subprocess.STDOUT,
+                                       env=env, **kwargs)
+        except Exception:
+            log.close()
+            run.update(status="failed", error="无法启动任务子进程")
             atomic_json(metadata, run)
-            logs_dir = self.state / "logs"
-            logs_dir.mkdir(parents=True, exist_ok=True)
-            log = (logs_dir / f"{run_id}.log").open("wb")
-            env = dict(os.environ)
-            source_root = str(Path(__file__).resolve().parents[2])
-            env["PYTHONPATH"] = source_root + os.pathsep + env.get("PYTHONPATH", "")
-            kwargs = {"creationflags": subprocess.CREATE_NO_WINDOW} if os.name == "nt" else {}
-            try:
-                process = subprocess.Popen([sys.executable, "-m", "minicolmap.ui.worker", str(metadata)],
-                                           cwd=self.root, stdout=log, stderr=subprocess.STDOUT,
-                                           env=env, **kwargs)
-            except Exception:
-                log.close()
-                run.update(status="failed", error="无法启动重建子进程")
-                atomic_json(metadata, run)
-                raise
-            self.runs[run_id] = run
-            self.processes[run_id] = process
-            self.logs[run_id] = log
-            return self.public(run)
+            raise
+        self.runs[run_id] = run
+        self.processes[run_id] = process
+        self.logs[run_id] = log
+        return self.public(run)
+
+    def start_rendering(self, source_run_id=None, config=None, *, dataset_id=None, photo_dataset_id=None):
+        from .rendering import capabilities, validate_source, validate_model_images
+        from ..rendering.config import resolve_render_config
+        config = resolve_render_config(config)
+        with self.lock:
+            for run_id in list(self.runs):
+                if self.get(run_id)["status"] == "running":
+                    raise RuntimeError("已有任务正在运行，请等待或取消")
+            if (source_run_id is None) == (dataset_id is None):
+                raise ValueError("source_run_id 和 dataset_id 必须且只能指定一项")
+            if dataset_id is not None:
+                if photo_dataset_id is not None:
+                    raise ValueError("直接使用位姿数据集时不能再指定 photo_dataset_id")
+                if config["method"] != "nerf":
+                    raise ValueError("3DGS 需要点云初始化，请先构建或加载 SfM 点云结果")
+                from ..rendering.data import load_posed_dataset
+                manifest, dataset = self.dataset(dataset_id)
+                model = load_posed_dataset(manifest)
+                if len(model.poses) < 2:
+                    raise ValueError("NeRF 需要至少两张已提供 K、R、t 的原图；该数据集位姿不足")
+                validate_model_images(model, dataset)
+                source, model_path = None, None
+            else:
+                source, model_path, manifest, model = validate_source(
+                    self, source_run_id, config["method"], photo_dataset_id)
+            if not capabilities()["torch_available"]:
+                raise ValueError('未安装 PyTorch，请先安装项目可选依赖：pip install -e ".[render]"')
+            run_id = uuid.uuid4().hex[:16]
+            method = config["method"]
+            output = self.root / "outputs" / (f"ui_{method}_" + time.strftime("%Y%m%d_%H%M%S_") + run_id[:6])
+            output.mkdir(parents=True)
+            frozen_model = output / "source_model.json"
+            if model_path is None:
+                save_reconstruction(model, frozen_model)
+            else:
+                shutil.copy2(model_path, frozen_model)
+            atomic_json(output / "config.json", config)
+            run = {"id": run_id, "name": output.name, "pipeline": method,
+                   "source_kind": "posed_dataset" if source is None else "sfm_result",
+                   "source_model_path": str(frozen_model),
+                   "status": "running", "stage": "starting", "dataset_path": str(manifest),
+                   "config": config, "registered_images": len(model.poses), "point_count": len(model.points),
+                   "image_count": len(model.images), "elapsed_seconds": 0,
+                   "snapshots": [{"id": "source", "label": "标定位姿输入（只读）" if source is None else "SfM 输入（只读）", "stage": "source"}],
+                   "images_available": True, "warnings": [], "output_path": str(output.resolve()),
+                   "training_metrics": {}}
+            if source is None:
+                run["source_dataset_id"] = dataset_id
+                run["dataset_id"] = dataset_id
+            else:
+                run["source_run_id"] = source_run_id
+                selected_dataset = photo_dataset_id or source.get("dataset_id")
+                if selected_dataset:
+                    run["dataset_id"] = selected_dataset
+            return self._launch(run)
 
     def cancel(self, run_id, interrupted=False):
         with self.lock:
@@ -248,6 +333,10 @@ class Store:
 
     def model(self, run_id, snapshot="latest"):
         run = self.get(run_id)
+        if run.get("pipeline") in ("nerf", "3dgs"):
+            if snapshot not in ("latest", "source"):
+                raise KeyError("训练任务只提供只读相机与原始输入场景")
+            return load_reconstruction(run["source_model_path"]), run, "source"
         snapshots = run["snapshots"]
         if snapshot == "latest":
             if not snapshots:
@@ -264,7 +353,7 @@ class Store:
         if not preferred:
             return None
         output = Path(run["output_path"])
-        model_path = output / "model.json"
+        model_path = Path(run.get("source_model_path", output / "model.json"))
         if not model_path.exists() and run.get("snapshots"):
             last_id = run["snapshots"][-1]["id"]
             if last_id != "final":

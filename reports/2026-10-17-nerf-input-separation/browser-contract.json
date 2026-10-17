@@ -1,0 +1,63 @@
+{
+  "fixtureOnly": true,
+  "doesNotValidateLearningAlgorithms": true,
+  "checks": [
+    "point-free NeRF source accepted; point-free 3dgs source excluded",
+    "unposed photos require real poses, not point clouds",
+    "posed dataset sends dataset_id without source_run_id and restores selection",
+    "imported point cloud requires explicit matching photo_dataset_id",
+    "method-specific network and Gaussian controls",
+    "camera-only scene has no misleading point-cloud waiting overlay",
+    "3dgs without a point cloud is disabled with working build/load entries",
+    "nerf TODO remains non-successful",
+    "3dgs interface result and reference preview",
+    "checkpoint download",
+    "history restored after refresh",
+    "free orbit pose renders through camera API",
+    "cancellation"
+  ],
+  "capturedFreeCamera": {
+    "R": [
+      [
+        0.8197984145351231,
+        -2.775557561562892e-17,
+        -0.5726522151582917
+      ],
+      [
+        -0.20881633046802703,
+        0.9311455486866196,
+        -0.29893763110548965
+      ],
+      [
+        0.5332225610901757,
+        0.3646477302289074,
+        0.7633516445147283
+      ]
+    ],
+    "t": [
+      0.2863261075791457,
+      0.14946881555274455,
+      1.2291314287816923
+    ],
+    "K": [
+      [
+        209.65170530057372,
+        0,
+        127.5
+      ],
+      [
+        0,
+        210.03657992645927,
+        86.5
+      ],
+      [
+        0,
+        0,
+        1
+      ]
+    ],
+    "width": 256,
+    "height": 174
+  },
+  "errors": []
+}

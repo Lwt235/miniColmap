@@ -1,0 +1,31 @@
+{
+  "date": "2026-10-17",
+  "regression_passed": 333,
+  "frontend_unit_passed": 16,
+  "learner_tests_expected_failures": 79,
+  "learner_tests_unexpected_errors": 0,
+  "student_todo_functions": [
+    "generate_rays",
+    "positional_encoding",
+    "volume_render",
+    "build_nerf",
+    "initialize_gaussians",
+    "gaussian_covariance",
+    "project_gaussians",
+    "splat_gaussians",
+    "densify_and_prune"
+  ],
+  "production_sfm_algorithms_changed": false,
+  "verified_torch": "2.7.1+cpu",
+  "browser_contract_fixture_only": true,
+  "browser_live_todo_mocked": false,
+  "worker_inputs_unchanged": true,
+  "source_hashes": {
+    "src/minicolmap/rendering/__init__.py": "5a5a52edda089facd413ad7c668a78f8af00b8108c56ce97a5c195c2affbbe96",
+    "src/minicolmap/rendering/algorithms.py": "be55265e2f1aed62da0b4391b62723868a7f4b28107ba6dbfe78418680b1924f",
+    "src/minicolmap/rendering/config.py": "592c12329634e39453e47928d302a891564eba9bb9898d6ea5aaecffd585dbde",
+    "src/minicolmap/rendering/data.py": "823c1c9cc314212c020c09c90dfff43c95965ae5a760e24d3f21ea180a5e6309",
+    "src/minicolmap/rendering/pipeline.py": "622a40cb23f9f2ecef06bced059394a7f19071312020b056ffd7bff8f6b26f91"
+  },
+  "final_targeted_rendering_tests_passed": 28
+}

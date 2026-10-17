@@ -52,6 +52,10 @@ export const stageName = (stage: string) =>
     done: '处理完成',
     starting: '正在启动',
     queued: '等待启动',
+    preparing: '准备训练数据',
+    training: '训练',
+    evaluation: '验证与渲染',
+    todo: '算法待实现',
   })[stage] ?? stage;
 export function snapshotName(label: string) {
   const registration = /^registered_(\d+)$/.exec(label);

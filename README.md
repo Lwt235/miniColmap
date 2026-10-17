@@ -15,7 +15,7 @@ created: 2026-10-14
 Middlebury TempleRing真实照片子集也已通过SIFT完整流程：8/8注册、1283点，
 BA前平均误差0.263px；BA后0.174px，但当前预算下尚未数值收敛。
 2026-10-17用户完成自适应RANSAC，31项练习验收通过；8图与47图均全部注册。
-47图新运行6570点、mean误差0.398px，总耗时约461秒；详见 [自适应RANSAC日志分析](reports/2026-10-17-adaptive-ransac-analysis.md)。
+47图最新运行6570点、mean误差0.398px，总耗时约119秒；初始化剪枝前后完整模型一致，见 [剪枝验收分析](reports/2026-10-17-initialization-pruning-analysis.md)。此前较慢运行保留在 [自适应RANSAC日志分析](reports/2026-10-17-adaptive-ransac-analysis.md)。
 数据与命令见 [真实照片快速开始](docs/09-Middlebury数据集快速开始.md)。
 见 [含噪初始化修复与复现](reports/2026-10-16-含噪初始化修复.md)。
 
@@ -33,7 +33,7 @@ BA前平均误差0.263px；BA后0.174px，但当前预算下尚未数值收敛�
 界面只调用原有重建代码，显示操作不改变估计结果。操作、状态含义与开发说明见
 [可视化工作台指南](docs/10-可视化工作台.md)。
 
-项目现已通过260项Python测试（含31项自适应RANSAC验收）、9项前端测试；工作台也已完成本机Edge完整流程验收。
+2026-10-17区分NeRF/3DGS输入后，工程及已完成练习回归通过363项Python测试、19项前端测试；新算法79项仍为待填写TODO，单独验收。工作台已完成本机Edge原SfM流程与新训练接口验证。
 真实界面重建仍得到8/8相机、1283点；截图与复现说明见
 [工作台验收记录](reports/2026-10-16-workbench/README.md)。
 
@@ -50,6 +50,32 @@ BA前平均误差0.263px；BA后0.174px，但当前预算下尚未数值收敛�
 9. [可视化工作台](docs/10-可视化工作台.md)：浏览器界面、数据导入、参数、实时重建与三维检查。
 10. [自适应RANSAC与流水线计时](docs/11-自适应RANSAC与流水线计时.md)：下一步优化的31项练习验收、接口约定和阶段计时对照。
 11. [初始化上界剪枝练习](docs/12-初始化上界剪枝练习.md)：25项独立测试、安全剪枝证明、可选排序与8/47图验收方法。
+12. [NeRF与3DGS开发指南](docs/13-NeRF与3DGS开发指南.md)：下一阶段的9个算法填空、79项公开验收、真实照片训练与前端入口。
+13. [新视图渲染数学与调试](docs/14-新视图渲染数学与调试.md)：射线、体渲染、协方差投影、splatting的公式及排错。
+14. [GPU环境与训练启动](docs/15-GPU环境与训练启动.md)：CUDA PyTorch安装、自检、GPU配置文件和8GB显存起步。
+
+## 下一阶段：NeRF / 3DGS
+
+进一步的SfM性能优化暂存待办。新的学习框架位于 `src/minicolmap/rendering/algorithms.py`，
+N1–N4已由你实现并通过39项验收及6项CUDA检查；S1–S4待实现，S5密度控制选修。训练循环、校准数据适配、保存与前端连接已提供。
+这是小规模可微教学基线，完整论文采样、球谐颜色与CUDA光栅加速列为后续扩展。
+
+```powershell
+# 原有SfM不需要这个可选依赖；本机已配置CUDA版PyTorch
+.\.venv\Scripts\python.exe -m pip install -e ".[render,dev,ui,ui-test]"
+# NeRF已完成；尚未实现的3DGS测试仍会报告TODO
+.\.venv\Scripts\python.exe -m pytest exercises/novel_view -q
+```
+
+完成相应填空后，在工作台先选方法：NeRF可直接选择带K/R/t的照片集（无需点云），3DGS需先构建或加载点云模型；也可复用已有相机结果。设置参数、训练，
+查看真实渲染/原图和验证PSNR；支持已有相机与自由视角渲染。只有照片、缺位姿时先导入/估计位姿；缺照片或未完成填空会明确报错，
+不会把源点云冒充训练结果。先按[开发指南](docs/13-NeRF与3DGS开发指南.md)运行两步smoke，再增加预算。
+
+GPU训练可在工作台选择CUDA，或导入`configs/nerf_gpu.json` / `configs/3dgs_gpu.json`。
+本机RTX4060已验证PyTorch2.7.1+cu128；复现安装与实际GPU自检见[GPU指南](docs/15-GPU环境与训练启动.md)。
+
+NeRF最新验收：完整回归408项通过；47图验证PSNR从1000步17.75dB提高到3000步18.66dB，仍有明显模糊。
+实测图像、基线对照及下一步实验见[NeRF验收报告](reports/2026-10-17-nerf-implementation/README.md)。
 
 ## 环境与第一次运行
 
@@ -95,7 +121,7 @@ $pytestTemp = Join-Path $env:TEMP ("mini-colmap-" + [guid]::NewGuid().ToString("
 
 成功后包含 `model.json`、`summary.json`、`points.ply`、`sparse/0/cameras.txt`、
 `images.txt`、`points3D.txt`、特征/匹配诊断与 `run_status.json`。
-3DGS 训练接入属于可选扩展，需要另行验证读入格式与去畸变图像。
+NeRF/3DGS 使用独立的可选训练入口；算法填空完成后可直接复用这些位姿与原始去畸变照片。
 
 ## 哪些你写，哪些已经准备好
 
@@ -106,5 +132,5 @@ $pytestTemp = Join-Path $env:TEMP ("mini-colmap-" + [guid]::NewGuid().ToString("
 | 冲突 track、初始地图、新图注册、新点过滤 | 数据结构、JSON/PLY/COLMAP TXT、CLI |
 | BA 重投影残差与地图更新理解 | SciPy 求解器包装、合成夹具、工程测试 |
 
-共 **13 个学习 TODO：G1–G8、T1、M1–M3、B1**。不手写 SIFT 尺度空间、P3P 求根或大型稀疏求解器。
+原始SfM共 **13 个学习 TODO：G1–G8、T1、M1–M3、B1**，均已完成。新视图阶段另有 **9个TODO：N1–N4、S1–S5**，其中N1–N4已完成，S1–S5待实现。不手写 SIFT 尺度空间、P3P 求根或大型稀疏求解器。
 不要把调用库的能力描述成自己的算法实现，也不要把生成框架描述成已经完成重建。

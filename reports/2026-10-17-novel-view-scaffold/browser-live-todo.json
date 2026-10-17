@@ -1,0 +1,30 @@
+{
+  "fixtureOnly": false,
+  "algorithmResultsVerified": false,
+  "expectedAlgorithmState": "todo",
+  "checks": [
+    "real nerf worker TODO visible",
+    "real 3dgs worker TODO visible",
+    "no fabricated previews or checkpoint",
+    "refresh restores selected run and exact saved config"
+  ],
+  "runs": [
+    {
+      "id": "01b0d548cd7c4f92",
+      "pipeline": "nerf",
+      "source_run_id": "result-9e322bdaf7dfb8a6",
+      "status": "todo",
+      "error": "TODO N4: build the position-density and directional-color MLP",
+      "output_path": "D:\\yy_folder\\miniColmap\\outputs\\ui_nerf_20261017_153109_01b0d5"
+    },
+    {
+      "id": "251dc1da1ac04719",
+      "pipeline": "3dgs",
+      "source_run_id": "result-9e322bdaf7dfb8a6",
+      "status": "todo",
+      "error": "TODO S1: initialize trainable Gaussians from sparse points and RGB",
+      "output_path": "D:\\yy_folder\\miniColmap\\outputs\\ui_3dgs_20261017_153113_251dc1"
+    }
+  ],
+  "errors": []
+}

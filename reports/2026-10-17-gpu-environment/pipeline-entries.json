@@ -1,0 +1,30 @@
+{
+  "status": "passed",
+  "mocked": false,
+  "cases": [
+    {
+      "method": "nerf",
+      "device": "cuda",
+      "verified": true,
+      "returncode": 2,
+      "status": "todo",
+      "learner_boundary": "TODO N4: build the position-density and directional-color MLP",
+      "output": ".cache\\gpu-pipeline-fa5696179c\\nerf",
+      "checkpoint_exists": false,
+      "diagnostic": "Unfinished learner implementation: TODO N4: build the position-density and directional-color MLP"
+    },
+    {
+      "method": "3dgs",
+      "device": "cuda",
+      "verified": true,
+      "returncode": 2,
+      "status": "todo",
+      "learner_boundary": "TODO S1: initialize trainable Gaussians from sparse points and RGB",
+      "output": ".cache\\gpu-pipeline-fa5696179c\\3dgs",
+      "checkpoint_exists": false,
+      "diagnostic": "Unfinished learner implementation: TODO S1: initialize trainable Gaussians from sparse points and RGB"
+    }
+  ],
+  "source_model_unchanged": true,
+  "scope": "CUDA prerequisites and real pipeline TODO boundaries, not completed renderer training"
+}

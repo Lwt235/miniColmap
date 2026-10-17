@@ -107,7 +107,7 @@ export default function ImportDialog({
         </div>
         <p className="muted">
           {mode === 'manifest'
-            ? '选择包含 dataset.json 与图像文件的完整目录。清单中的相对路径将被保留。'
+            ? '选择包含 dataset.json 与图像文件的完整目录。清单中的相对路径与真实相机位姿将保留；含 poses 的数据集可直接训练 NeRF，无需点云。'
             : '导入同一台相机拍摄、已去畸变且尺寸一致的照片，并填写对应的真实内参。'}
         </p>
         <div className="upload-zone">
@@ -196,7 +196,8 @@ export default function ImportDialog({
               ))}
             </div>
             <p className="form-note">
-              图像尺寸自动读取并校验。此界面不会猜测焦距，也不会自动去畸变。
+              图像尺寸自动读取并校验。此入口仅添加内参，不生成位姿；NeRF
+              训练前需估计或导入真实相机位姿。此界面不会猜测焦距，也不会自动去畸变。
             </p>
           </div>
         )}

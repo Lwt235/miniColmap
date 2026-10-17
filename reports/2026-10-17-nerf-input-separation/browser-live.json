@@ -1,0 +1,37 @@
+{
+  "fixtureOnly": false,
+  "inputContractTest": true,
+  "algorithmResultsVerified": false,
+  "poseProvenance": "Explicit calibrated poses copied from a local known model solely to prepare test inputs; no SfM run/model/points are sent to training.",
+  "imports": [
+    {
+      "kind": "posed",
+      "id": "dataset-709b72c076d157ae",
+      "pose_count": 2,
+      "image_count": 2
+    },
+    {
+      "kind": "unposed",
+      "id": "dataset-7e33ad0040dcabff",
+      "pose_count": 0,
+      "image_count": 2
+    }
+  ],
+  "checks": [
+    "upload preserves two explicit poses immediately without refresh",
+    "NeRF starts directly from dataset_id without source_run_id or points",
+    "real worker reaches TODO N4 with zero points",
+    "camera-only scene fits and rotates without waiting-for-point-cloud overlay",
+    "raw photos without poses stay disabled",
+    "3DGS requires point cloud source and rejects posed-dataset-only API"
+  ],
+  "errors": [],
+  "run": {
+    "id": "93ccdbe92486467b",
+    "source_kind": "posed_dataset",
+    "source_dataset_id": "dataset-709b72c076d157ae",
+    "point_count": 0,
+    "status": "todo",
+    "error": "TODO N4: build the position-density and directional-color MLP"
+  }
+}

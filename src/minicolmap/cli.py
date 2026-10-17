@@ -30,6 +30,15 @@ def main(argv=None):
     export = sub.add_parser('export', help='Export a saved model to COLMAP text and PLY')
     export.add_argument('model', type=Path)
     export.add_argument('--output', type=Path, required=True)
+    train = sub.add_parser('train', help='Train NeRF from posed photos; initialize 3DGS from an existing point model')
+    train.add_argument('--model', type=Path, help='Optional for NeRF with a posed dataset; required for 3DGS')
+    train.add_argument('--dataset', type=Path, required=True)
+    train.add_argument('--output', type=Path, required=True)
+    train.add_argument('--method', choices=('nerf', '3dgs'))
+    train.add_argument('--config', type=Path)
+    render = sub.add_parser('render', help='Render a saved learner checkpoint from an existing camera')
+    render.add_argument('--run', type=Path, required=True)
+    render.add_argument('--image-id', type=int, required=True)
     args = parser.parse_args(argv)
     try:
         if args.command == 'ui':
@@ -59,7 +68,19 @@ def main(argv=None):
             save_scene(scene, args.output)
             print(f'Geometry fixture saved: {args.output.resolve()} (not a SIFT or SfM result)')
             return 0
-        if args.command == 'run':
+        if args.command == 'train':
+            from .rendering.config import resolve_render_config
+            from .rendering.pipeline import train as train_rendering
+            settings = json.loads(args.config.read_text(encoding='utf-8-sig')) if args.config else {}
+            if not isinstance(settings, dict):
+                raise ValueError('Rendering config must be a JSON object')
+            if args.method:
+                settings['method'] = args.method
+            result = train_rendering(args.model, args.dataset, args.output, resolve_render_config(settings))
+        elif args.command == 'render':
+            from .rendering.pipeline import render_checkpoint
+            result = render_checkpoint(args.run, image_id=args.image_id)
+        elif args.command == 'run':
             from .config import load_config
             from .pipeline import reconstruct
             result = reconstruct(args.dataset, args.output, load_config(args.config))
@@ -79,7 +100,7 @@ def main(argv=None):
         return 0
     except NotImplementedError as exc:
         print(f'Unfinished learner implementation: {exc}', file=sys.stderr)
-        print('See docs/02-里程碑与开发步骤.md; fill that TODO before retrying.', file=sys.stderr)
+        print('See docs/02-里程碑与开发步骤.md or docs/13-NeRF与3DGS开发指南.md; fill that TODO before retrying.', file=sys.stderr)
         return 2
     except (ValueError, RuntimeError, OSError, KeyError, ImportError) as exc:
         print(f'Error: {exc}', file=sys.stderr)

@@ -43,6 +43,10 @@ import ConfigPanel from './ConfigPanel';
 import Inspector from './Inspector';
 import TimingPanel from './TimingPanel';
 import ImportDialog from './ImportDialog';
+import RenderingPanel from './RenderingPanel';
+import { isRenderingRun } from './rendering';
+import type { RenderCamera } from './rendering';
+import type { RenderPreview } from './types';
 
 const statusNames: Record<string, string> = {
   running: '重建进行中',
@@ -51,8 +55,23 @@ const statusNames: Record<string, string> = {
   cancelled: '已取消',
   interrupted: '运行中断',
   imported: '已导入模型',
+  todo: '算法待实现',
 };
 function runStatus(run: Run) {
+  if (isRenderingRun(run)) {
+    return (
+      (
+        {
+          running: '训练进行中',
+          completed: '训练完成',
+          failed: '训练失败',
+          todo: '算法待实现',
+        } as Record<string, string>
+      )[run.status] ??
+      statusNames[run.status] ??
+      run.status
+    );
+  }
   if (
     run.status === 'completed' &&
     run.registered_images != null &&
@@ -117,6 +136,7 @@ export default function App() {
       version: number;
     } | null>(null),
     [viewCameraId, setViewCameraId] = useState<number | null>(null),
+    [workspaceMode, setWorkspaceMode] = useState<'scene' | 'rendering'>('scene'),
     [options, setOptions] = useState(initialOptions),
     [tab, setTab] = useState<'images' | 'config' | 'history'>('images'),
     [bottomTab, setBottomTab] = useState<'log' | 'diagnostics'>('log'),
@@ -149,6 +169,7 @@ export default function App() {
       /* Storage may be disabled by the browser. */
     }
     setRunId(r.id);
+    setWorkspaceMode(isRenderingRun(r) ? 'rendering' : 'scene');
     setRun(r);
     setSnapshot('latest');
     setSelection(null);
@@ -161,6 +182,7 @@ export default function App() {
   }, []);
   const selectDataset = useCallback((id: string) => {
     setDatasetId(id);
+    setWorkspaceMode('scene');
     setDataset((current) => (current?.id === id ? current : null));
     setRunId('');
     setRun(null);
@@ -334,7 +356,7 @@ export default function App() {
           ].slice(-500),
         );
         const kind = String(data.kind ?? '');
-        const terminal = ['complete', 'terminal', 'error', 'cancelled'].includes(kind);
+        const terminal = ['complete', 'terminal', 'error', 'cancelled', 'todo'].includes(kind);
         refreshRun(
           kind === 'snapshot' || terminal,
           kind === 'timing' || kind === 'warning' || terminal,
@@ -445,6 +467,22 @@ export default function App() {
       setBusy(false);
     }
   }
+  async function renderFreeView(camera: RenderCamera) {
+    if (!run || !isRenderingRun(run) || run.status !== 'completed') return;
+    setBusy(true);
+    try {
+      const preview = await api<RenderPreview>(
+        `/api/rendering/runs/${encodeURIComponent(run.id)}/render`,
+        json({ camera }),
+      );
+      updateRun({ ...run, latest_preview: preview });
+      setWorkspaceMode('rendering');
+    } catch (error) {
+      notify(String(error));
+    } finally {
+      setBusy(false);
+    }
+  }
   const images =
     scene?.cameras ??
     dataset?.images.map((i) => ({
@@ -470,7 +508,9 @@ export default function App() {
   );
   const missingImages = run && !run.images_available;
   return (
-    <div className={`app ${leftHidden ? 'left-hidden' : ''} ${rightHidden ? 'right-hidden' : ''}`}>
+    <div
+      className={`app ${leftHidden ? 'left-hidden' : ''} ${rightHidden || workspaceMode === 'rendering' ? 'right-hidden' : ''}`}
+    >
       <header className="topbar">
         <div className="brand">
           <div className="brand-mark">
@@ -537,6 +577,13 @@ export default function App() {
               )}
             </div>
           </details>
+          <button
+            className={`quiet ${workspaceMode === 'rendering' ? 'selected' : ''}`}
+            data-testid="open-rendering"
+            onClick={() => setWorkspaceMode(workspaceMode === 'rendering' ? 'scene' : 'rendering')}
+          >
+            NeRF / 3DGS
+          </button>
           <span className="action-divider" />
           {activeRun ? (
             <button
@@ -546,13 +593,13 @@ export default function App() {
               onClick={() => void cancel()}
             >
               <Square size={13} fill="currentColor" />
-              取消重建
+              {isRenderingRun(activeRun) ? '取消训练' : '取消重建'}
             </button>
           ) : (
             <button
               className="primary start-button"
               data-testid="start-run"
-              disabled={busy || !datasetId || booting}
+              disabled={busy || !datasetId || booting || workspaceMode === 'rendering'}
               onClick={() => void start()}
             >
               {busy ? (
@@ -560,7 +607,7 @@ export default function App() {
               ) : (
                 <Play size={14} fill="currentColor" />
               )}
-              开始重建
+              开始 SfM 重建
             </button>
           )}
           <button
@@ -733,7 +780,7 @@ export default function App() {
             ) : tab === 'history' ? (
               <>
                 <div className="list-heading">
-                  <span>本地重建记录</span>
+                  <span>本地任务记录</span>
                   <button
                     className="text-button"
                     aria-label="刷新历史运行"
@@ -761,8 +808,14 @@ export default function App() {
                       </div>
                       <span>{runStatus(r)}</span>
                       <small>
-                        {r.registered_images ?? '—'}/{r.image_count ?? '—'} 相机 ·{' '}
-                        {number(r.point_count, 0)} 点
+                        {isRenderingRun(r) ? (
+                          `${r.pipeline?.toUpperCase()} · ${r.training_metrics?.step ?? r.completed ?? 0} / ${r.training_metrics?.total ?? r.total ?? '—'} 步`
+                        ) : (
+                          <>
+                            {r.registered_images ?? '—'}/{r.image_count ?? '—'} 相机 ·{' '}
+                            {number(r.point_count, 0)} 点
+                          </>
+                        )}
                       </small>
                     </button>
                   ))}
@@ -801,6 +854,24 @@ export default function App() {
               {sceneLoading && <LoaderCircle size={12} className="spin" />}
             </div>
             <div className="scene-actions">
+              <div className="workspace-mode" aria-label="工作区视图">
+                <button
+                  className={workspaceMode === 'scene' ? 'selected' : ''}
+                  onClick={() => setWorkspaceMode('scene')}
+                >
+                  {run?.source_kind === 'posed_dataset'
+                    ? '相机位姿场景'
+                    : isRenderingRun(run)
+                      ? '源 SfM 场景'
+                      : '三维场景'}
+                </button>
+                <button
+                  className={workspaceMode === 'rendering' ? 'selected' : ''}
+                  onClick={() => setWorkspaceMode('rendering')}
+                >
+                  训练 / 渲染
+                </button>
+              </div>
               <label className="snapshot-select">
                 <Clock size={13} />
                 <select
@@ -837,19 +908,51 @@ export default function App() {
               此模型未关联原始照片；点云和相机位姿仍可查看。
             </div>
           )}
-          <Viewer
-            scene={scene}
-            runId={runId}
-            options={options}
-            setOptions={setOptions}
-            selection={selection}
-            cameraViewRequest={cameraViewRequest}
-            onCameraViewChange={setViewCameraId}
-            onSelect={(s) => {
-              setSelection(s);
-              if (s) setRightHidden(false);
-            }}
-          />
+          {workspaceMode === 'rendering' ? (
+            <RenderingPanel
+              runs={runs}
+              datasets={datasets}
+              selectedDatasetId={datasetId}
+              run={run}
+              scene={scene}
+              activeRun={activeRun}
+              selectedCameraId={selection?.kind === 'camera' ? selection.id : null}
+              onStarted={(created) => {
+                updateRun(created);
+                selectRun(created);
+                setBottomTab('log');
+              }}
+              onError={notify}
+              onPrepareSfM={(id) => {
+                if (id) selectDataset(id);
+                setWorkspaceMode('scene');
+                setTab('images');
+                setLeftHidden(false);
+              }}
+              onImportModel={() => modelInput.current?.click()}
+              onImportDataset={() => setImporting(true)}
+            />
+          ) : (
+            <Viewer
+              scene={scene}
+              runId={runId}
+              options={options}
+              setOptions={setOptions}
+              selection={selection}
+              cameraViewRequest={cameraViewRequest}
+              onCameraViewChange={setViewCameraId}
+              onRenderCamera={
+                isRenderingRun(run) && run?.status === 'completed'
+                  ? (camera) => void renderFreeView(camera)
+                  : undefined
+              }
+              renderBusy={busy || !!activeRun}
+              onSelect={(s) => {
+                setSelection(s);
+                if (s) setRightHidden(false);
+              }}
+            />
+          )}
           <section className={`bottom-panel ${bottomExpanded ? 'expanded' : ''}`}>
             <div className="bottom-heading">
               <div className="bottom-tabs">
@@ -903,14 +1006,25 @@ export default function App() {
             {bottomTab === 'log' ? (
               <>
                 <div className="phase-strip">
-                  {phases.map(([key, name], i) => {
+                  {(isRenderingRun(run)
+                    ? [
+                        ['preparing', '准备数据'],
+                        ['training', '训练'],
+                        ['evaluation', '验证'],
+                        ['export', '导出'],
+                      ]
+                    : phases
+                  ).map(([key, name], i) => {
                     const skipped =
                       key === 'bundle_adjustment' && run?.status === 'completed' && !reports?.ba;
-                    const complete = !skipped && (run?.status === 'completed' || currentPhase > i);
+                    const phase = isRenderingRun(run)
+                      ? ['preparing', 'training', 'evaluation', 'export'].indexOf(run?.stage ?? '')
+                      : currentPhase;
+                    const complete = !skipped && (run?.status === 'completed' || phase > i);
                     return (
                       <div
                         key={key}
-                        className={`${run?.status === 'running' && i === currentPhase ? 'current' : ''} ${complete ? 'complete' : ''}`}
+                        className={`${run?.status === 'running' && i === phase ? 'current' : ''} ${complete ? 'complete' : ''}`}
                         title={skipped ? '本次未启用最终 BA' : name}
                       >
                         <span>
@@ -1062,7 +1176,7 @@ export default function App() {
             )}
           </section>
         </main>
-        {!rightHidden && (
+        {!rightHidden && workspaceMode === 'scene' && (
           <Inspector
             scene={scene}
             inputDataset={dataset}
@@ -1101,9 +1215,13 @@ export default function App() {
           onImported={(d) => {
             setDatasets((old) => [d, ...old.filter((x) => x.id !== d.id)]);
             selectDataset(d.id);
+            if (workspaceMode === 'rendering') setWorkspaceMode('rendering');
             setDataset(d);
             setTab('images');
-            notify(`已导入 ${d.image_count} 张图像。请检查参数后开始重建。`, false);
+            notify(
+              `已导入 ${d.image_count} 张图像。${(d.pose_count ?? 0) >= 2 ? `已保留 ${d.pose_count} 台真实相机位姿，可直接训练 NeRF。` : '尚无相机位姿；可先估计位姿或导入含位姿的清单。'}`,
+              false,
+            );
           }}
         />
       )}

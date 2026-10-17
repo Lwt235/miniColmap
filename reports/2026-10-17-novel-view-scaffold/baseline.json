@@ -1,0 +1,24 @@
+{
+  "status": "intentional_student_todos",
+  "python": "3.12.7",
+  "torch": "2.7.1+cpu",
+  "collected": 79,
+  "failures": 79,
+  "passed": 0,
+  "skipped": 0,
+  "xfail": 0,
+  "failure_todo_counts": {
+    "N1": 10,
+    "N2": 8,
+    "N3": 13,
+    "N4": 8,
+    "S1": 7,
+    "S2": 4,
+    "S3": 9,
+    "S4": 12,
+    "S5": 8
+  },
+  "unexpected": [],
+  "command": ".venv/Scripts/python.exe -m pytest exercises/novel_view -q --tb=no -p no:cacheprovider --junitxml reports/2026-10-17-novel-view-scaffold/baseline.xml",
+  "scope": "N1-N4 and S1-S4 required; S5 optional and disabled by default; no algorithm answers supplied"
+}
