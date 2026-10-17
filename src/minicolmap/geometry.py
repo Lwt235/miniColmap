@@ -132,9 +132,10 @@ def eight_point(x1: ArrayLike, x2: ArrayLike) -> FloatArray:
     x1_h = np.c_[x1_norm, np.ones(len(x1_norm))]
     x2_h = np.c_[x2_norm, np.ones(len(x2_norm))]
     A = einx.multiply("N i, N j -> N (i j)", x2_h, x1_h)
-    if np.linalg.matrix_rank(A) < 8:
+    U, S, Vh = np.linalg.svd(A, full_matrices=True)
+    tol = S.max() * max(A.shape) * np.finfo(S.dtype).eps
+    if np.count_nonzero(S > tol) < 8:
         raise ValueError("found rank(A) < 8, repeated/collinear points")
-    U, _, Vh = np.linalg.svd(A, full_matrices=True)
     Fhat = Vh[-1, :].reshape(3, 3)
     U, S, Vh = np.linalg.svd(Fhat, full_matrices=True)
     S[-1] = 0

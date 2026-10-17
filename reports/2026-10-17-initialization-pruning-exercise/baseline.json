@@ -1,0 +1,28 @@
+{
+  "date": "2026-10-17",
+  "exercise": "initialization_pruning",
+  "exercise_tests": 25,
+  "baseline": {
+    "failed": 10,
+    "passed": 15,
+    "expected_failures": true
+  },
+  "existing_regressions": {
+    "passed": 260,
+    "includes": "tests and exercises/adaptive_ransac"
+  },
+  "source_hashes_before": {
+    "mapper.py": "9f81b53779eaee36e49a2c132f5df9dcb3f65781a1f5fbeeb7458f135ce09fbf",
+    "geometry.py": "3b81c6db74293bf7af197cbe9642d19fcde91bb1fbc22dd1ace4dfc0222780ad",
+    "optimization.py": "7ba85121c594a6207d1c88ccd06ddab51694561b96f2a32785bd0cbc4f535942",
+    "pipeline.py": "8cbcb5b6131d8dc5ed91ef668bb82e48311fe92c006c8458d1618678db0fb4d4"
+  },
+  "source_hashes_after": {
+    "mapper.py": "9f81b53779eaee36e49a2c132f5df9dcb3f65781a1f5fbeeb7458f135ce09fbf",
+    "geometry.py": "3b81c6db74293bf7af197cbe9642d19fcde91bb1fbc22dd1ace4dfc0222780ad",
+    "optimization.py": "7ba85121c594a6207d1c88ccd06ddab51694561b96f2a32785bd0cbc4f535942",
+    "pipeline.py": "8cbcb5b6131d8dc5ed91ef668bb82e48311fe92c006c8458d1618678db0fb4d4"
+  },
+  "source_files_unchanged": true,
+  "algorithm_implemented_by_assistant": false
+}

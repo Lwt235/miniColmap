@@ -6,7 +6,7 @@ config['geometry']['min_inliers'] for M1's minimum initial points.
 Do not pass only config['mapping']. Full schema: docs/08-配置参数参考.md.
 """
 from dataclasses import dataclass
-from typing import TypeAlias, TypedDict
+from typing import TypeAlias, TypedDict, NotRequired
 
 import numpy as np
 import einx
@@ -20,7 +20,7 @@ from .models import (
 from . import backends
 from .config import PipelineConfig
 from .optimization import OptimizationReport, refine_two_view
-from .tracks import Observation, Track
+from .tracks import Track
 from .geometry import (
     essential_from_fundamental,
     triangulate_points,
@@ -45,6 +45,11 @@ class InitialPairReport(TypedDict, total=False):
     accepted_tracks: int
     selected: bool
     rejection_reason: str | None
+
+    # Not Required
+    skipped_by_upper_bound: bool
+    upper_bound_points: int
+    best_points_at_prune: int
 
 
 # Each array has shape (N_i, 3), uint8 RGB in [0,255]. Its row k corresponds
@@ -116,15 +121,34 @@ def initialize_map(
     ])
     best = None
     best_score = (-1, -np.inf)
+    best_original_idx = len(pairs)
 
-    for pair in pairs:
+    ordered_pairs = sorted(
+        enumerate(pairs),
+        key=lambda item: -len(item[1].indices),
+    )
+
+    for original_idx, pair in ordered_pairs:
         i, j = pair.image_id1, pair.image_id2
+        upper_bound = len(pair.indices)
         item: InitialPairReport = {
             'images': [i, j], 'matches': len(pair.indices),
             'selected': False, 'rejection_reason': None,
         }
         if diagnostics is not None:
             diagnostics.append(item)
+
+        if best is not None:
+            best_points = best_score[0]
+
+            if upper_bound < best_points:
+                item.update({
+                    "skipped_by_upper_bound": True,
+                    "upper_bound_points": int(upper_bound),
+                    "best_points_at_prune": int(best_points),
+                    "rejection_reason": "Upper bound below best accepted point count",
+                })
+                continue
 
         image1 = model.images[i]
         image2 = model.images[j]
@@ -262,8 +286,9 @@ def initialize_map(
         chosen_rows = [v[3] for v in accepted.values()]
         median_angle = float(np.median(angles[chosen_rows]))
         score = (count, median_angle)
-        if score > best_score:
+        if score > best_score or (score == best_score and original_idx < best_original_idx):
             best_score = score
+            best_original_idx = original_idx
             best = (i, j, R.copy(), t.copy(), accepted, item)
 
     if best is None:
