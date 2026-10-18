@@ -18,7 +18,7 @@ Set-Location -LiteralPath 'D:\yy_folder\miniColmap'
 
 也可用 `scripts/setup_render_gpu.ps1` 执行这三步。安装完成后，`scripts/setup_render_gpu.ps1 -VerifyOnly` 只重新检查，不重新安装。
 
-本项目当前渲染器使用PyTorch算子，安装CUDA wheel即可运行GPU张量与自动微分；当前不需要编译自定义CUDA扩展，也不需要另外配置nvcc。以后开发tile/CUDA光栅器时，再增加对应的编译工具链。Windows驱动与运行时兼容依据见[NVIDIA CUDA12.8发布说明](https://docs.nvidia.com/cuda/archive/12.8.0/cuda-toolkit-release-notes/index.html)。
+NeRF与3DGS reference使用PyTorch算子，安装CUDA wheel即可运行。可选gsplat后端还需要原生扩展；本机2026-10-18已用项目内CUDA12.8工具链编译并完成真实验证，日常运行无需nvcc/cl环境。Windows驱动与运行时兼容依据见[NVIDIA CUDA12.8发布说明](https://docs.nvidia.com/cuda/archive/12.8.0/cuda-toolkit-release-notes/index.html)。
 
 ## 自检内容
 
@@ -47,6 +47,8 @@ Set-Location -LiteralPath 'D:\yy_folder\miniColmap'
 
 导入GPU配置会设置完整参数，并不只修改设备。NeRF默认1000步、每批256射线、每射线32样本、图像缩小8倍；3DGS默认1000步、图像缩小8倍、最多512个初始高斯，密度控制关闭。
 
+当前47图TempleRing已经完成深层NeRF轮廓恢复，可直接打开历史 `ui_nerf_20261017_231626_22a05a`，或导入 `configs/nerf_temple_quality.json` 重新训练。它使用160×120、6000步、黑背景、随机分层采样、混合训练照片，实测全部11个验证视角平均24.17dB。near=0.55、far=1.25是当前场景归一化后的距离范围，换场景应重新设置；不要把它当作通用深度范围。详见[画质恢复报告](../reports/2026-10-17-nerf-quality-recovery/README.md)。
+
 ## 命令行使用
 
 NeRF可直接读取已有K/R/t的照片集：
@@ -70,3 +72,18 @@ NeRF不要求点云；两者均需要原图、内参与位姿。GPU配置不会�
 训练权重可保存并重新渲染；当前按需检查点渲染使用CPU，以保持可移植查看，训练设备由配置决定。查看权重的设备与训练是否使用GPU是两个独立选项。
 
 不要按显存已占用多少单独判断程序是否正确运行，结合训练日志、迭代计数和实际预览检查。安装新环境后，使用项目`.venv/Scripts/python.exe`，避免误用base环境的CPU版torch。
+
+## gsplat本机扩展
+
+当前环境已完成兼容修复；工作台选择“gsplat”和“CUDA”即可使用。扩展与版本校验清单位于`.cache/torch_extensions`和`.cache/gsplat-runtime.json`，不会修改系统CUDA或已安装库源码。正常训练子进程直接加载已验证扩展。
+
+```powershell
+# 当前环境复验：真实前向、反向和两步Adam
+.\.venv\Scripts\python.exe scripts/check_gsplat_backend.py
+# 重新搭建环境时：需要MSVC C++工具，先下载并核验官方最小CUDA组件
+.\.venv\Scripts\python.exe -m pip install -r requirements-gsplat.txt
+.\.venv\Scripts\python.exe scripts/setup_gsplat_cuda.py
+& .\scripts\with_gsplat_env.ps1 -PythonArgs @('scripts/build_gsplat_extension.py')
+```
+
+Python、PyTorch、CUDA或gsplat版本变化后应重新构建与自检，不复制旧二进制冒充新环境。构建只解决CUDA后端可用性；画质和连续实时浏览仍需独立验收。版本、像素约定、实测及画质优化顺序见[兼容修复与画质调研](../reports/2026-10-18-gsplat-compat-quality/README.md)。

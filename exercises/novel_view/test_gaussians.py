@@ -23,7 +23,7 @@ def state():
         'means': T([[0., 0., 2.], [1., 0., 3.], [2., 0., 4.]]),
         'log_scales': torch.log(T([[.2, .4, .8], [.3, .6, .9], [.4, .8, 1.2]])),
         'quaternions': T([[1., 0., 0., 0.]] * 3),
-        'color_logits': T([[.2, .4, .6], [.3, .5, .7], [.4, .6, .8]]),
+        'sh_coeffs': torch.arange(3 * 16 * 3, dtype=torch.float64).reshape(3, 16, 3) / 100,
         'opacity_logits': torch.logit(T([.8, .01, .5])),
     }
 
@@ -32,11 +32,13 @@ def test_s1_sparse_point_and_color_initialization():
     points = T([[1., 2., 3.], [-1., 0., 5.]])
     colors = T([[0., .5, 1.], [.1, .3, .7]])
     result = initialize_gaussians(points, colors, initial_scale=.2, initial_opacity=.3)
-    assert set(result) == {'means', 'log_scales', 'quaternions', 'color_logits', 'opacity_logits'}
+    assert set(result) == {'means', 'log_scales', 'quaternions', 'sh_coeffs', 'opacity_logits'}
     torch.testing.assert_close(result['means'], points)
     torch.testing.assert_close(result['log_scales'].exp(), torch.full_like(points, .2))
     torch.testing.assert_close(result['quaternions'], T([[1., 0., 0., 0.], [1., 0., 0., 0.]]))
-    torch.testing.assert_close(result['color_logits'].sigmoid(), colors.clamp(1e-6, 1 - 1e-6))
+    assert result['sh_coeffs'].shape == (2, 16, 3)
+    torch.testing.assert_close(result['sh_coeffs'][:, 0] / math.sqrt(4 * math.pi) + .5, colors)
+    assert torch.count_nonzero(result['sh_coeffs'][:, 1:]) == 0
     torch.testing.assert_close(result['opacity_logits'].sigmoid(), T([.3, .3]))
     for value in result.values():
         assert value.is_leaf and value.requires_grad and value.dtype == points.dtype
@@ -49,7 +51,8 @@ def test_s1_sparse_point_and_color_initialization():
 def test_s1_empty_sparse_cloud():
     result = initialize_gaussians(torch.empty((0, 3), dtype=torch.float64),
                                   torch.empty((0, 3), dtype=torch.float64))
-    assert result['means'].shape == result['log_scales'].shape == result['color_logits'].shape == (0, 3)
+    assert result['means'].shape == result['log_scales'].shape == (0, 3)
+    assert result['sh_coeffs'].shape == (0, 16, 3)
     assert result['quaternions'].shape == (0, 4) and result['opacity_logits'].shape == (0,)
 
 
@@ -269,7 +272,7 @@ def test_s5_prunes_low_opacity_and_appends_deterministic_children():
     torch.testing.assert_close(out['means'], T([[0., 0., 2.], [2., 0., 4.], [.2, 0., 2.], [2.4, 0., 4.]]))
     expected_scales = T([[.1, .2, .4], [.2, .4, .6], [.1, .2, .4], [.2, .4, .6]])
     torch.testing.assert_close(out['log_scales'].exp(), expected_scales)
-    torch.testing.assert_close(out['color_logits'], before['color_logits'][[0, 2, 0, 2]])
+    torch.testing.assert_close(out['sh_coeffs'], before['sh_coeffs'][[0, 2, 0, 2]])
     torch.testing.assert_close(out['opacity_logits'], before['opacity_logits'][[0, 2, 0, 2]])
     for key in original:
         torch.testing.assert_close(original[key], before[key])
@@ -303,7 +306,8 @@ def test_s5_cap_prioritizes_originals_and_only_shrinks_actual_split_sources():
 
 def test_s5_all_pruned_returns_well_shaped_empty_state():
     out = densify_and_prune(state(), T([0., 0., 0.]), .1, .99, 10)
-    assert out['means'].shape == out['log_scales'].shape == out['color_logits'].shape == (0, 3)
+    assert out['means'].shape == out['log_scales'].shape == (0, 3)
+    assert out['sh_coeffs'].shape == (0, 16, 3)
     assert out['quaternions'].shape == (0, 4) and out['opacity_logits'].shape == (0,)
 
 

@@ -19,6 +19,20 @@ def camera():
     return T([[2., .3, 1.], [0., 3., 2.], [0., 0., 1.]]), torch.eye(3, dtype=torch.float64), T([0., 0., 0.])
 
 
+def test_n4_default_deep_initialization_can_learn_density_with_six_encoding_levels():
+    # This real training configuration previously returned zero density for
+    # every sample under seed=0, permanently cutting the density gradient.
+    torch.manual_seed(0)
+    model = build_nerf(6, 4, 256)
+    points = torch.linspace(-1, 1, 192).reshape(64, 3)
+    directions = torch.nn.functional.normalize(torch.ones_like(points), dim=-1)
+    _, density = model(points, directions)
+    assert torch.count_nonzero(density) > 0
+    (density - .5).square().mean().backward()
+    assert model.density_head.weight.grad is not None
+    assert torch.count_nonzero(model.density_head.weight.grad) > 0
+
+
 def test_n1_principal_ray_has_no_half_pixel_shift():
     K, R, t = camera()
     origins, directions = generate_rays(K, R, t, T([[1., 2.]]))

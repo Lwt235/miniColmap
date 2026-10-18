@@ -181,6 +181,9 @@ await page.route('**/api/**', async (route) => {
     if (starts === 1) {
       assert.equal(body.dataset_id, 'fixture-posed');
       assert.equal(body.source_run_id, undefined);
+      assert.equal(body.config.background, 'black');
+      assert.equal(body.config.stratified_sampling, true);
+      assert.equal(body.config.ray_sampling, 'all_images');
     }
     if (starts === 2) {
       assert.equal(body.source_run_id, sfm.id);
@@ -312,6 +315,9 @@ try {
   );
   await page.getByLabel('NeRF 位姿照片数据集', { exact: true }).selectOption('fixture-posed');
   assert(await page.getByTestId('start-training').isEnabled());
+  await page.getByLabel('图像背景', { exact: true }).selectOption('black');
+  await page.getByLabel('训练深度采样', { exact: true }).selectOption('random');
+  await page.getByLabel('光线批次', { exact: true }).selectOption('all_images');
   await page.getByTestId('start-training').click();
   await page.getByTestId('rendering-todo').waitFor();
   assert.match(await page.getByTestId('rendering-todo').innerText(), /TODO N1/);
@@ -319,6 +325,9 @@ try {
   await page.reload({ waitUntil: 'networkidle' });
   await page.getByTestId('rendering-todo').waitFor();
   assert.equal(await page.getByLabel('NeRF 数据源类型', { exact: true }).inputValue(), 'dataset');
+  assert.equal(await page.getByLabel('图像背景', { exact: true }).inputValue(), 'black');
+  assert.equal(await page.getByLabel('训练深度采样', { exact: true }).inputValue(), 'random');
+  assert.equal(await page.getByLabel('光线批次', { exact: true }).inputValue(), 'all_images');
   assert.equal(
     await page.getByLabel('NeRF 位姿照片数据集', { exact: true }).inputValue(),
     'fixture-posed',

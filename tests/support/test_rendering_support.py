@@ -134,10 +134,13 @@ def install_protocol_doubles(monkeypatch, method):
     monkeypatch.setattr(learner, 'volume_render', lambda rgb, *args: {'rgb': rgb.mean(dim=1)})
     monkeypatch.setattr(learner, 'initialize_gaussians', lambda points, colors, *args:
         {'means': points.clone(), 'log_scales': torch.zeros_like(points),
-         'quaternions': torch.zeros((len(points), 4)), 'color_logits': torch.zeros_like(colors),
+         'quaternions': torch.zeros((len(points), 4)),
+         'sh_coeffs': torch.zeros((len(points), (args[-1] + 1)**2, 3)),
          'opacity_logits': torch.zeros(len(points))})
     monkeypatch.setattr(learner, 'gaussian_covariance', lambda logs, quats:
         torch.eye(3).expand(len(logs), 3, 3))
+    monkeypatch.setattr(learner, 'evaluate_sh', lambda coefficients, directions, degree:
+        coefficients[:, 0].sigmoid())
     monkeypatch.setattr(learner, 'project_gaussians', lambda means, *args:
         {'means2d': torch.zeros((len(means), 2)), 'cov2d': torch.eye(2).expand(len(means), 2, 2),
          'depths': torch.ones(len(means)), 'visible': torch.ones(len(means), dtype=torch.bool)})
@@ -146,8 +149,10 @@ def install_protocol_doubles(monkeypatch, method):
     return torch
 
 
-@pytest.mark.parametrize('method', ['nerf', '3dgs'])
-def test_training_checkpoint_preview_and_camera_render_protocol(appearance_scene, monkeypatch, method):
+@pytest.mark.parametrize('method,extra', [('nerf',{}), ('3dgs',{}),
+    ('3dgs',{'gaussian': {'sh_degree': 2, 'sh_degree_interval': 1}}),
+    ('nerf',{'background':'black','stratified_sampling':True,'ray_sampling':'all_images'})])
+def test_training_checkpoint_preview_and_camera_render_protocol(appearance_scene, monkeypatch, method, extra):
     torch = install_protocol_doubles(monkeypatch, method)
     from minicolmap.rendering.pipeline import train, render_checkpoint
     model_path, dataset_path, model = appearance_scene
@@ -155,7 +160,7 @@ def test_training_checkpoint_preview_and_camera_render_protocol(appearance_scene
     output = model_path.parent / method
     events = []
     config = resolve_render_config({'method': method, 'iterations': 2, 'preview_every': 1,
-                                  'image_downscale': 2, 'rays_per_batch': 3})
+                                  'image_downscale': 2, 'rays_per_batch': 3, **extra})
     summary = train(model_path, dataset_path, output, config, on_event=events.append)
     assert summary['step'] == 2 and summary['train_ids'] == [3, 11] and summary['validation_ids'] == [19]
     assert summary['metrics']['psnr_scope'] == 'mean_validation_view_mse'
@@ -177,6 +182,14 @@ def test_training_checkpoint_preview_and_camera_render_protocol(appearance_scene
     if method == '3dgs':
         data = np.load(output / 'gaussians.npz')
         np.testing.assert_allclose(data['means'], np.array([p.xyz for p in model.points.values()]), atol=1e-6)
+        assert saved['schema_version'] == 2
+        expected_degree = config['gaussian']['sh_degree']
+        assert saved['active_sh_degree'] == expected_degree
+        np.testing.assert_array_equal(data['sh_coeffs'], saved['state']['sh_coeffs'])
+        assert data['sh_coeffs'].shape == (2, (expected_degree+1)**2, 3)
+        assert data['active_sh_degree'] == expected_degree
+        assert str(data['sh_direction']) == 'camera_to_gaussian_world'
+        assert 'colors' not in data.files, 'A single RGB must not replace view-dependent appearance'
     with pytest.raises(ValueError, match='输出已存在'):
         train(model_path, dataset_path, output, config)
     with pytest.raises(ValueError):
@@ -204,6 +217,35 @@ def test_cuda_request_fails_explicitly_when_unavailable(monkeypatch):
     monkeypatch.setattr(torch.cuda, 'is_available', lambda: False)
     with pytest.raises(ValueError, match='CUDA'):
         _torch('cuda')
+
+
+def test_unfinished_sh_is_reported_as_s6_todo(appearance_scene, monkeypatch):
+    install_protocol_doubles(monkeypatch, '3dgs')
+    from minicolmap.rendering import algorithms as learner
+    from minicolmap.rendering.pipeline import train
+    def unfinished(*args):
+        raise NotImplementedError('TODO S6 test boundary')
+    monkeypatch.setattr(learner, 'evaluate_sh', unfinished)
+    model_path, dataset_path, _ = appearance_scene
+    output = model_path.parent / 'sh-todo'
+    with pytest.raises(NotImplementedError, match='TODO S6'):
+        train(model_path, dataset_path, output, {'method': '3dgs', 'iterations': 1})
+    assert json.loads((output / 'run_status.json').read_text())['status'] == 'todo'
+    assert not (output / 'summary.json').exists()
+
+
+def test_legacy_rgb_only_gaussian_checkpoint_is_not_mistaken_for_sh(appearance_scene, monkeypatch):
+    torch = install_protocol_doubles(monkeypatch, '3dgs')
+    from minicolmap.rendering.pipeline import train, render_checkpoint
+    model_path, dataset_path, _ = appearance_scene
+    output = model_path.parent / 'legacy'
+    train(model_path, dataset_path, output, {'method': '3dgs', 'iterations': 1})
+    checkpoint = torch.load(output / 'checkpoint.pt', weights_only=True)
+    checkpoint['schema_version'] = 1
+    checkpoint['state']['color_logits'] = checkpoint['state'].pop('sh_coeffs')[:, 0]
+    torch.save(checkpoint, output / 'checkpoint.pt')
+    with pytest.raises(ValueError, match='RGB-only'):
+        render_checkpoint(output, image_id=3)
 
 
 def test_sampler_covers_the_configured_near_far_interval(monkeypatch):

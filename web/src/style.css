@@ -2436,6 +2436,133 @@ details > summary::-webkit-details-marker {
   border-radius: 5px;
   resize: vertical;
 }
+.gaussian-live {
+  border: 1px solid #37505c;
+  background: #111b21;
+  border-radius: 7px;
+  padding: 15px;
+  margin: 18px 0;
+}
+.gaussian-live-heading,
+.gaussian-live-toolbar,
+.gaussian-live-status,
+.gaussian-live-metrics {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.gaussian-live-heading {
+  justify-content: space-between;
+}
+.gaussian-live-heading > div {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.gaussian-live-heading small {
+  color: #7e9daa;
+  font-size: 10px;
+}
+.gaussian-live-toolbar {
+  margin: 14px 0;
+  gap: 8px;
+}
+.gaussian-live-toolbar label {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  color: #94afbc;
+  font-size: 11px;
+}
+.gaussian-live-toolbar select {
+  max-width: 180px;
+  padding: 5px;
+}
+.gaussian-live-stage {
+  display: grid;
+  place-items: center;
+  background: #030506;
+  border: 1px solid #334650;
+  border-radius: 5px;
+  overflow: hidden;
+}
+.gaussian-live-viewport {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--live-aspect);
+  overflow: hidden;
+}
+.gaussian-live-stage:fullscreen .gaussian-live-viewport {
+  width: min(100vw, calc(100vh * var(--live-aspect)));
+}
+.gaussian-live-viewport img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  user-select: none;
+}
+.gaussian-live-viewport img:not([src]) {
+  display: none;
+}
+.gaussian-live-viewport canvas {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  touch-action: none;
+  cursor: grab;
+}
+.gaussian-live-viewport canvas:active {
+  cursor: grabbing;
+}
+.gaussian-live-viewport canvas:focus-visible {
+  outline: 2px solid #67c5c2;
+  outline-offset: -3px;
+}
+.gaussian-live-placeholder {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  color: #8ba6b4;
+}
+.gaussian-live-badge {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  padding: 5px 8px;
+  color: #b8d4d9;
+  background: #12232bcf;
+  font-size: 10px;
+  border-radius: 4px;
+  pointer-events: none;
+}
+.gaussian-live-status {
+  justify-content: space-between;
+  color: #9fc7b8;
+  margin: 12px 0;
+  font-size: 11px;
+}
+.gaussian-live-status > span {
+  color: #839dab;
+}
+.gaussian-live-metrics {
+  gap: 16px;
+  color: #7893a2;
+  font-size: 10px;
+  margin-bottom: 8px;
+}
+.gaussian-live-metrics b {
+  color: #d2e6e8;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
 @media (max-width: 1200px) {
   .rendering-settings {
     width: 260px;

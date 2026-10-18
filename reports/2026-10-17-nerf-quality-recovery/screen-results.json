@@ -1,0 +1,162 @@
+[
+  {
+    "run": "nerf_quality_screen_black_1500",
+    "config": {
+      "method": "nerf",
+      "iterations": 1500,
+      "learning_rate": 0.0001,
+      "image_downscale": 8,
+      "rays_per_batch": 256,
+      "samples_per_ray": 64,
+      "near": 0.1,
+      "far": 4,
+      "holdout_every": 4,
+      "seed": 0,
+      "device": "cuda",
+      "preview_every": 500,
+      "background": "black",
+      "stratified_sampling": false,
+      "ray_sampling": "image",
+      "nerf": {
+        "levels_xyz": 10,
+        "levels_dir": 4,
+        "hidden_dim": 256
+      },
+      "gaussian": {
+        "initial_scale": 0.01,
+        "initial_opacity": 0.1,
+        "max_gaussians": 512,
+        "densify_every": 0
+      }
+    },
+    "metrics": {
+      "step": 1500,
+      "total": 1500,
+      "loss": 0.015484407544136047,
+      "validation_mse": 0.0132975359023972,
+      "psnr": 18.762288284417163,
+      "psnr_scope": "mean_validation_view_mse"
+    },
+    "elapsed_seconds": 74.0
+  },
+  {
+    "run": "nerf_quality_screen_bounded_1500",
+    "config": {
+      "method": "nerf",
+      "iterations": 1500,
+      "learning_rate": 0.0001,
+      "image_downscale": 8,
+      "rays_per_batch": 256,
+      "samples_per_ray": 64,
+      "near": 0.55,
+      "far": 1.25,
+      "holdout_every": 4,
+      "seed": 0,
+      "device": "cuda",
+      "preview_every": 500,
+      "background": "white",
+      "stratified_sampling": false,
+      "ray_sampling": "image",
+      "nerf": {
+        "levels_xyz": 10,
+        "levels_dir": 4,
+        "hidden_dim": 256
+      },
+      "gaussian": {
+        "initial_scale": 0.01,
+        "initial_opacity": 0.1,
+        "max_gaussians": 512,
+        "densify_every": 0
+      }
+    },
+    "metrics": {
+      "step": 1500,
+      "total": 1500,
+      "loss": 0.03825824707746506,
+      "validation_mse": 0.03175193545493213,
+      "psnr": 14.98229796930173,
+      "psnr_scope": "mean_validation_view_mse"
+    },
+    "elapsed_seconds": 64.85999999998603
+  },
+  {
+    "run": "nerf_quality_active_init_smooth_1500",
+    "config": {
+      "method": "nerf",
+      "iterations": 1500,
+      "learning_rate": 0.0001,
+      "image_downscale": 8,
+      "rays_per_batch": 256,
+      "samples_per_ray": 64,
+      "near": 0.1,
+      "far": 4,
+      "holdout_every": 4,
+      "seed": 0,
+      "device": "cuda",
+      "preview_every": 500,
+      "background": "white",
+      "stratified_sampling": false,
+      "ray_sampling": "image",
+      "nerf": {
+        "levels_xyz": 6,
+        "levels_dir": 4,
+        "hidden_dim": 256
+      },
+      "gaussian": {
+        "initial_scale": 0.01,
+        "initial_opacity": 0.1,
+        "max_gaussians": 512,
+        "densify_every": 0
+      }
+    },
+    "metrics": {
+      "step": 1500,
+      "total": 1500,
+      "loss": 0.04121244698762894,
+      "validation_mse": 0.05131514167243784,
+      "psnr": 12.89754467743899,
+      "psnr_scope": "mean_validation_view_mse"
+    },
+    "elapsed_seconds": 66.32800000000861
+  },
+  {
+    "run": "nerf_quality_active_init_combined_1500",
+    "config": {
+      "method": "nerf",
+      "iterations": 1500,
+      "learning_rate": 0.0001,
+      "image_downscale": 8,
+      "rays_per_batch": 512,
+      "samples_per_ray": 64,
+      "near": 0.55,
+      "far": 1.25,
+      "holdout_every": 4,
+      "seed": 0,
+      "device": "cuda",
+      "preview_every": 500,
+      "background": "black",
+      "stratified_sampling": true,
+      "ray_sampling": "all_images",
+      "nerf": {
+        "levels_xyz": 6,
+        "levels_dir": 4,
+        "hidden_dim": 256
+      },
+      "gaussian": {
+        "initial_scale": 0.01,
+        "initial_opacity": 0.1,
+        "max_gaussians": 512,
+        "densify_every": 0
+      }
+    },
+    "metrics": {
+      "step": 1500,
+      "total": 1500,
+      "loss": 0.006417098920792341,
+      "validation_mse": 0.004341850946234031,
+      "psnr": 23.62325089757505,
+      "psnr_scope": "mean_validation_view_mse"
+    },
+    "elapsed_seconds": 95.79699999999139
+  }
+]

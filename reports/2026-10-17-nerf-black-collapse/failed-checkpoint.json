@@ -1,0 +1,28 @@
+{
+  "raw_density": {
+    "min": 346.1065673828125,
+    "mean": 516.7221069335938,
+    "max": 670.3193969726562,
+    "zero_fraction": 0.0
+  },
+  "color_logits": {
+    "min": -1045.388427734375,
+    "mean": -659.9497680664062,
+    "max": -345.8491516113281,
+    "zero_fraction": 0.0
+  },
+  "rendered_rgb": {
+    "min": 0.0,
+    "mean": 0.0,
+    "max": 0.0,
+    "zero_fraction": 1.0
+  },
+  "opacity": {
+    "min": 1.0,
+    "mean": 1.0,
+    "max": 1.0,
+    "zero_fraction": 0.0
+  },
+  "color_output_grad_norm": 0.0,
+  "density_head_grad_norm": 0.0
+}

@@ -28,6 +28,38 @@ const defaults: RenderingConfig = {
 };
 
 describe('rendering input contract', () => {
+  it('validates SH degree, schedule and the explicit CUDA backend without changing old configs', () => {
+    expect(renderingConfigError(defaults)).toBeNull();
+    for (const degree of [-1, 4, 1.5, NaN]) {
+      expect(
+        renderingConfigError({
+          ...defaults,
+          gaussian: { ...defaults.gaussian, sh_degree: degree },
+        }),
+      ).toContain('球谐阶数');
+    }
+    for (const interval of [-1, 0.5, 1000001]) {
+      expect(
+        renderingConfigError({
+          ...defaults,
+          gaussian: { ...defaults.gaussian, sh_degree_interval: interval },
+        }),
+      ).toContain('升阶间隔');
+    }
+    const cuda = {
+      ...defaults,
+      method: '3dgs' as const,
+      gaussian: { ...defaults.gaussian, sh_degree: 3, backend: 'gsplat' as const },
+    };
+    expect(renderingConfigError(cuda)).toContain('CUDA');
+    expect(renderingConfigError({ ...cuda, device: 'cuda' })).toBeNull();
+    expect(
+      renderingConfigError({
+        ...cuda,
+        gaussian: { ...cuda.gaussian, backend: 'invalid' as 'gsplat' },
+      }),
+    ).toContain('光栅后端');
+  });
   it('separates NeRF camera requirements from 3DGS point cloud requirements', () => {
     const source = {
       id: 'sfm',
@@ -105,6 +137,29 @@ describe('rendering input contract', () => {
     expect(renderingConfigError(defaults)).toBeNull();
     expect(renderingConfigError({ ...defaults, near: 4, far: 1 })).toContain('near');
     expect(renderingConfigError({ ...defaults, near: 0 })).toBeNull();
+  });
+  it('accepts new sampling controls and preserves old configs without them', () => {
+    expect(renderingConfigError(defaults)).toBeNull();
+    expect(
+      renderingConfigError({
+        ...defaults,
+        background: 'black',
+        stratified_sampling: true,
+        ray_sampling: 'all_images',
+      }),
+    ).toBeNull();
+    expect(
+      renderingConfigError({ ...defaults, background: 'red' } as unknown as RenderingConfig),
+    ).toContain('背景');
+    expect(
+      renderingConfigError({
+        ...defaults,
+        ray_sampling: 'validation',
+      } as unknown as RenderingConfig),
+    ).toContain('光线');
+    expect(
+      renderingConfigError({ ...defaults, stratified_sampling: 1 } as unknown as RenderingConfig),
+    ).toContain('布尔');
   });
   it('rejects NaN, fractional iteration budgets and invalid opacity', () => {
     expect(renderingConfigError({ ...defaults, learning_rate: NaN })).toBeTruthy();

@@ -15,7 +15,7 @@ import {
 } from 'lucide-react';
 import type { Camera, DisplayOptions, Scene, Selection } from './types';
 import { cameraCenter, frustumCorners, visiblePointIndices } from './math';
-import { alignedView } from './cameraView';
+import { alignedView, CameraTransition } from './cameraView';
 import { captureRenderCamera } from './rendering';
 import type { RenderCamera } from './rendering';
 import { number, snapshotName } from './api';
@@ -45,6 +45,7 @@ type Engine = {
   pickables: THREE.Object3D[];
   pointIndices: number[];
   enterCamera: (source: Camera) => void;
+  cancelAlignment: () => void;
   invalidate: () => void;
 };
 function dispose(group: THREE.Group) {
@@ -88,6 +89,7 @@ export default function Viewer({
     const parent = host.current;
     let frame = 0,
       disposed = false;
+    let transition: CameraTransition | null = null;
     const invalidate = () => {
       if (!disposed && !document.hidden && !frame) frame = requestAnimationFrame(draw);
     };
@@ -138,6 +140,16 @@ export default function Viewer({
       state.controls = controls;
       invalidate();
     };
+    const cancelAlignment = () => {
+      if (!transition) return;
+      transition = null;
+      renderer.domElement.removeAttribute('data-camera-aligning');
+      orbitFrom(controls.target.clone());
+    };
+    // Capture on the parent before OrbitControls receives the same input. The
+    // replacement controls can process the first drag/wheel event immediately.
+    parent.addEventListener('pointerdown', cancelAlignment, true);
+    parent.addEventListener('wheel', cancelAlignment, { capture: true, passive: true });
     const layout = () => {
       const width = parent.clientWidth,
         height = parent.clientHeight;
@@ -156,6 +168,7 @@ export default function Viewer({
       pickables: [],
       pointIndices: [],
       invalidate,
+      cancelAlignment,
       enterCamera: (source) => {
         const aligned = alignedView(
           source,
@@ -164,16 +177,25 @@ export default function Viewer({
           Math.max(state.radius * 10000, 1000),
         );
         if (!aligned) return;
-        camera.copy(aligned);
-        const forward = camera.getWorldDirection(new THREE.Vector3());
+        const forward = aligned.getWorldDirection(new THREE.Vector3());
         const depth = Math.max(
-          state.bounds.getCenter(new THREE.Vector3()).sub(camera.position).dot(forward),
+          state.bounds.getCenter(new THREE.Vector3()).sub(aligned.position).dot(forward),
           state.radius * 0.01,
         );
-        orbitFrom(camera.position.clone().addScaledVector(forward, depth));
+        transition = new CameraTransition(
+          camera,
+          aligned,
+          camera.position.distanceTo(controls.target),
+          depth,
+          performance.now(),
+        );
+        controls.enabled = false;
+        renderer.domElement.setAttribute('data-camera-aligning', 'true');
+        invalidate();
         latestCameraViewChange.current(source.image_id);
       },
       fit: (requestedBounds) => {
+        cancelAlignment();
         const bounds =
           requestedBounds && !requestedBounds.isEmpty() ? requestedBounds : state.bounds;
         const center = bounds.getCenter(new THREE.Vector3()),
@@ -252,12 +274,19 @@ export default function Viewer({
       invalidate();
     });
     resize.observe(parent);
-    function draw() {
+    function draw(now: number) {
       frame = 0;
       if (disposed || document.hidden) return;
-      // OrbitControls emits change while damping is active, scheduling the
-      // next frame. A settled, unchanged scene consumes no rendering frames.
-      controls.update();
+      if (transition) {
+        const finished = transition.update(camera, now);
+        controls.target.copy(transition.target);
+        if (finished) cancelAlignment();
+        else invalidate();
+      } else {
+        // Damping schedules frames only while moving; idle scenes stay idle.
+        // During alignment, update() would overwrite the interpolated rotation.
+        controls.update();
+      }
       // Avoid drawing/picking the camera marker around the observer's own lens.
       for (const child of content.children) {
         if (child.userData.cameraCenter)
@@ -274,6 +303,8 @@ export default function Viewer({
       disposed = true;
       cancelAnimationFrame(frame);
       document.removeEventListener('visibilitychange', invalidate);
+      parent.removeEventListener('pointerdown', cancelAlignment, true);
+      parent.removeEventListener('wheel', cancelAlignment, true);
       resize.disconnect();
       controls.dispose();
       renderer.domElement.removeEventListener('pointerdown', pointerDown);
@@ -292,6 +323,7 @@ export default function Viewer({
     dispose(e.content);
     e.pickables = [];
     if (!scene) {
+      e.cancelAlignment();
       latestCameraViewChange.current(null);
       setVisibleCount(0);
       e.invalidate();

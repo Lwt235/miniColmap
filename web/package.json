@@ -13,7 +13,8 @@
     "test:e2e:camera": "node e2e/camera-view.mjs",
     "test:e2e:rendering": "node e2e/novel-view.mjs",
     "test:e2e:rendering:todo": "node e2e/rendering-live-todo.mjs",
-    "test:e2e:posed-input": "node e2e/posed-input-live.mjs"
+    "test:e2e:posed-input": "node e2e/posed-input-live.mjs",
+    "test:e2e:gaussian-live": "node e2e/gaussian-live.mjs"
   },
   "dependencies": {
     "lucide-react": "0.468.0",

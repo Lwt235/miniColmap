@@ -46,6 +46,25 @@ export function renderingSourceRequest(
 
 /** Early feedback only; the server remains authoritative for all configuration rules. */
 export function renderingConfigError(config: RenderingConfig): string | null {
+  const shDegree = config.gaussian.sh_degree ?? 3;
+  const shInterval = config.gaussian.sh_degree_interval ?? 0;
+  if (!Number.isInteger(shDegree) || shDegree < 0 || shDegree > 3)
+    return '球谐阶数必须是 0 至 3 的整数。';
+  if (!Number.isInteger(shInterval) || shInterval < 0 || shInterval > 1000000)
+    return '球谐升阶间隔必须是 0 至 1000000 的整数；0 表示直接启用全部阶数。';
+  if (
+    config.gaussian.backend !== undefined &&
+    !['reference', 'gsplat'].includes(config.gaussian.backend)
+  )
+    return '高斯光栅后端需要选择 reference 或 gsplat。';
+  if (config.method === '3dgs' && config.gaussian.backend === 'gsplat' && config.device !== 'cuda')
+    return 'gsplat 光栅后端需要 CUDA 设备。';
+  if (config.background !== undefined && !['white', 'black'].includes(config.background))
+    return '背景需要选择黑色或白色。';
+  if (config.stratified_sampling !== undefined && typeof config.stratified_sampling !== 'boolean')
+    return '随机深度采样必须为布尔值。';
+  if (config.ray_sampling !== undefined && !['image', 'all_images'].includes(config.ray_sampling))
+    return '光线批次需要选择单张照片或混合训练照片。';
   const integers = [
     config.iterations,
     config.image_downscale,

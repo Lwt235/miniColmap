@@ -50,20 +50,21 @@ BA前平均误差0.263px；BA后0.174px，但当前预算下尚未数值收敛�
 9. [可视化工作台](docs/10-可视化工作台.md)：浏览器界面、数据导入、参数、实时重建与三维检查。
 10. [自适应RANSAC与流水线计时](docs/11-自适应RANSAC与流水线计时.md)：下一步优化的31项练习验收、接口约定和阶段计时对照。
 11. [初始化上界剪枝练习](docs/12-初始化上界剪枝练习.md)：25项独立测试、安全剪枝证明、可选排序与8/47图验收方法。
-12. [NeRF与3DGS开发指南](docs/13-NeRF与3DGS开发指南.md)：下一阶段的9个算法填空、79项公开验收、真实照片训练与前端入口。
+12. [NeRF与3DGS开发指南](docs/13-NeRF与3DGS开发指南.md)：10个算法填空、113项公开验收、真实照片训练与前端入口。
 13. [新视图渲染数学与调试](docs/14-新视图渲染数学与调试.md)：射线、体渲染、协方差投影、splatting的公式及排错。
 14. [GPU环境与训练启动](docs/15-GPU环境与训练启动.md)：CUDA PyTorch安装、自检、GPU配置文件和8GB显存起步。
+15. [3DGS球谐与实时渲染](docs/16-3DGS球谐与实时渲染.md)：必修S6、SH初始化/梯度、gsplat适配及最终实时验收目标。
 
 ## 下一阶段：NeRF / 3DGS
 
 进一步的SfM性能优化暂存待办。新的学习框架位于 `src/minicolmap/rendering/algorithms.py`，
-N1–N4已由你实现并通过39项验收及6项CUDA检查；S1–S4待实现，S5密度控制选修。训练循环、校准数据适配、保存与前端连接已提供。
-这是小规模可微教学基线，完整论文采样、球谐颜色与CUDA光栅加速列为后续扩展。
+N1–N4已由你实现并通过40项验收及6项CUDA检查；S1–S6也已完成并通过全部73项公开验收。CUDA reference真实训练已通过，S1的透明度设备遗漏已修复，见[设备修复报告](reports/2026-10-18-3dgs-device-fix/README.md)。
+3DGS支持3阶球谐与训练后的自由视角GPU渲染；允许接入成熟CUDA后端。gsplat1.5.3已用项目内CUDA12.8工具链编译，通过真实CUDA前向/反向、reference数值对照及普通工作台训练。打开完成的3DGS历史，在“3DGS自由视角”点击“开启实时渲染”，可旋转、平移、缩放并对齐已有相机；模型在独立进程中常驻GPU，关闭会话释放资源。两轮3000步训练的公平分辨率比较、清晰度瓶颈及实时验收见[最新分析与验收](reports/2026-10-18-3dgs-resolution-live/README.md)。此前编译细节见[兼容修复报告](reports/2026-10-18-gsplat-compat-quality/README.md)。NeRF进一步细化与SfM提速继续暂存。
 
 ```powershell
 # 原有SfM不需要这个可选依赖；本机已配置CUDA版PyTorch
 .\.venv\Scripts\python.exe -m pip install -e ".[render,dev,ui,ui-test]"
-# NeRF已完成；尚未实现的3DGS测试仍会报告TODO
+# NeRF和3DGS填空均已完成，运行公开算法验收
 .\.venv\Scripts\python.exe -m pytest exercises/novel_view -q
 ```
 
@@ -76,6 +77,8 @@ GPU训练可在工作台选择CUDA，或导入`configs/nerf_gpu.json` / `configs
 
 NeRF最新验收：完整回归408项通过；47图验证PSNR从1000步17.75dB提高到3000步18.66dB，仍有明显模糊。
 实测图像、基线对照及下一步实验见[NeRF验收报告](reports/2026-10-17-nerf-implementation/README.md)。
+较新的8×256网络出现黑图，其数值饱和与泛化问题见[深层NeRF诊断](reports/2026-10-17-nerf-black-collapse/README.md)；`configs/nerf_deep_diagnostic.json`用于诊断起步，尚未恢复旧网络画质。
+随后已完成轮廓恢复：当前47图TempleRing使用 `configs/nerf_temple_quality.json`，全部11个验证视角在160×120下24.17dB；数学/工程回归419项、前端20项通过。直接打开工作台历史 `ui_nerf_20261017_231626_22a05a` 查看，见[完整恢复报告与图片](reports/2026-10-17-nerf-quality-recovery/README.md)。纹理细节仍有模糊。
 
 ## 环境与第一次运行
 

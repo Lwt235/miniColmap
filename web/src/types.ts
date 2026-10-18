@@ -169,12 +169,18 @@ export type RenderingConfig = {
   seed: number;
   device: 'cpu' | 'cuda';
   preview_every: number;
+  background?: 'white' | 'black';
+  stratified_sampling?: boolean;
+  ray_sampling?: 'image' | 'all_images';
   nerf: { levels_xyz: number; levels_dir: number; hidden_dim: number };
   gaussian: {
     initial_scale: number;
     initial_opacity: number;
     max_gaussians: number;
     densify_every: number;
+    sh_degree?: number;
+    sh_degree_interval?: number;
+    backend?: 'reference' | 'gsplat';
   };
 };
 export type TrainingMetrics = { loss?: number; psnr?: number; step?: number; total?: number };

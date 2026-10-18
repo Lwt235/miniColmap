@@ -1,0 +1,11 @@
+{
+  "python": "3.12.7",
+  "torch": "2.7.1+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "sha256": {
+    "src/minicolmap/rendering/algorithms.py": "23387945865103117c6f44e920d55b79063db9ad98685d78f1ae5213cc3544d1",
+    "src/minicolmap/rendering/pipeline.py": "cbc5f62ab1c0832dcfd4c04ddd9069968c26e168fe2dd2588a7fa6e59da9b60d",
+    "configs/nerf_deep_diagnostic.json": "4824ade6fe12c53480a56296c014d9dafd9ace73a8d5eddb03808089c7d3f80f"
+  }
+}

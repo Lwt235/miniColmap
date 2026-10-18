@@ -81,6 +81,7 @@ def test_capabilities_and_configuration_use_shared_validator(tmp_path):
         capabilities = client.get("/api/rendering/capabilities").json()
         assert capabilities["methods"] == ["nerf", "3dgs"]
         assert capabilities["cuda_available"] is None
+        assert isinstance(capabilities["gsplat_native_available"], bool)
         assert ("torch" in sys.modules) == already_loaded
         response = client.post("/api/rendering/config/validate", json={"method": "3dgs", "iterations": 3})
         assert response.status_code == 200

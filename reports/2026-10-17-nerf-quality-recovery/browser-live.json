@@ -1,0 +1,22 @@
+{
+  "run_id": "22a05af63cc74ef2",
+  "preview": {
+    "step": 6000,
+    "image_id": 16,
+    "url": "/api/runs/22a05af63cc74ef2/artifacts/previews/render-1ec5f40c7c78.png",
+    "reference_url": "/api/runs/22a05af63cc74ef2/artifacts/previews/reference-16.png"
+  },
+  "dimensions": [
+    160,
+    120
+  ],
+  "errors": [],
+  "checks": [
+    "real trained checkpoint",
+    "saved background/sampling/ray-batch configuration",
+    "held-out camera #16 rendering",
+    "actual 160x120 image",
+    "preview restored on refresh"
+  ],
+  "render_and_refresh_seconds": 9.968
+}

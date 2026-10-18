@@ -1,0 +1,10 @@
+{
+  "nativeExtensionStatus": true,
+  "defaultsAndEditing": true,
+  "exportAndServerValidation": true,
+  "invalidSettingsRejected": true,
+  "backendRequiresCuda": true,
+  "resetRestoresDefaults": true,
+  "pageErrors": [],
+  "status": "passed"
+}

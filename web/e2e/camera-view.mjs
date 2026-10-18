@@ -23,12 +23,42 @@ const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = [],
   report = {};
 page.on('pageerror', (error) => errors.push(String(error)));
+await page.addInitScript(() => {
+  window.__drawCalls = 0;
+  for (const name of [
+    'drawArrays',
+    'drawElements',
+    'drawArraysInstanced',
+    'drawElementsInstanced',
+  ]) {
+    const original = WebGL2RenderingContext.prototype[name];
+    WebGL2RenderingContext.prototype[name] = function (...args) {
+      window.__drawCalls++;
+      return original.apply(this, args);
+    };
+  }
+});
 async function get(url) {
   const response = await page.request.get(base + url);
   assert(response.ok());
   return response.json();
 }
 const canvas = page.getByTestId('scene-canvas');
+const waitAligned = () =>
+  page.waitForFunction(
+    () =>
+      !document.querySelector('[data-testid="scene-canvas"]')?.hasAttribute('data-camera-aligning'),
+  );
+async function movingFrame() {
+  return canvas.evaluate((element) => {
+    const gl = element.getContext('webgl2');
+    const pixels = new Uint8Array(element.width * element.height * 4);
+    gl.readPixels(0, 0, element.width, element.height, gl.RGBA, gl.UNSIGNED_BYTE, pixels);
+    let signature = 2166136261;
+    for (const value of pixels) signature = Math.imul(signature ^ value, 16777619);
+    return { signature, moving: element.hasAttribute('data-camera-aligning') };
+  });
+}
 const hash = async () =>
   createHash('sha256')
     .update(await canvas.screenshot())
@@ -85,7 +115,20 @@ try {
   await page.waitForTimeout(400);
   const before = await hash();
   await align.click();
-  await page.waitForTimeout(500);
+  await page.waitForTimeout(100);
+  const intermediate1 = await movingFrame();
+  await page.waitForTimeout(120);
+  const intermediate2 = await movingFrame();
+  assert(
+    intermediate1.moving && intermediate2.moving,
+    'Alignment must pass through intermediate frames',
+  );
+  assert.notEqual(intermediate1.signature, intermediate2.signature);
+  await canvas.screenshot({ path: path.join(artifacts, 'alignment-in-progress.png') });
+  await waitAligned();
+  const finalFrame = await movingFrame();
+  assert.notEqual(intermediate2.signature, finalFrame.signature);
+  report.smoothTransition = true;
   const aligned = await hash();
   await alignedPixels(true);
   await canvas.screenshot({ path: path.join(artifacts, 'aligned-initial.png') });
@@ -94,6 +137,10 @@ try {
   await page.waitForTimeout(700);
   await canvas.screenshot({ path: path.join(artifacts, 'aligned-idle.png') });
   await assertAlignedPixels('Aligned pose remains stable without input');
+  const idleDraws = await page.evaluate(() => window.__drawCalls);
+  await page.waitForTimeout(700);
+  report.idleDrawCalls = (await page.evaluate(() => window.__drawCalls)) - idleDraws;
+  assert.equal(report.idleDrawCalls, 0, 'Completed alignment must stop drawing');
   report.alignsWithoutLock = true;
   let previous = await hash();
   // The aligned camera has a narrow calibrated FOV. Large orbit steps move
@@ -102,7 +149,7 @@ try {
   assert.notEqual(await hash(), previous);
   report.rotation = true;
   await align.click();
-  await page.waitForTimeout(400);
+  await waitAligned();
   previous = await hash();
   await drag('right', 0.54, 0.53);
   assert.notEqual(await hash(), previous);
@@ -113,9 +160,42 @@ try {
   assert.notEqual(await hash(), previous);
   report.zoom = true;
   await align.click();
-  await page.waitForTimeout(700);
+  await waitAligned();
   await assertAlignedPixels('Another click realigns after free movement');
   report.realignsOnClick = true;
+  // Interrupt well before the destination, using the very first pointer event.
+  await page.getByLabel('重置视角', { exact: true }).click();
+  await page.waitForTimeout(300);
+  await align.click();
+  await page.waitForTimeout(150);
+  assert.equal(await canvas.getAttribute('data-camera-aligning'), 'true');
+  await drag('left', 0.51, 0.505);
+  assert.equal(await canvas.getAttribute('data-camera-aligning'), null);
+  await page.waitForTimeout(500);
+  const interrupted = await hash();
+  await page.waitForTimeout(900);
+  assert.equal(await hash(), interrupted, 'Interrupted motion must not resume or snap back');
+  assert((await alignedPixels()).changed > 8, 'Interruption must retain a free pose');
+  report.dragInterruptsTransition = true;
+  await align.click();
+  await page.waitForTimeout(150);
+  const wheelBox = await canvas.boundingBox();
+  await page.mouse.move(wheelBox.x + wheelBox.width / 2, wheelBox.y + wheelBox.height / 2);
+  await page.mouse.wheel(0, -100);
+  assert.equal(await canvas.getAttribute('data-camera-aligning'), null);
+  await page.waitForTimeout(1000);
+  assert((await alignedPixels()).changed > 8);
+  report.wheelInterruptsTransition = true;
+  await align.click();
+  await page.waitForTimeout(120);
+  await page.getByTestId('image-13').click();
+  await align.click();
+  await page.waitForTimeout(120);
+  await page.getByTestId('image-20').click();
+  await align.click();
+  await waitAligned();
+  await assertAlignedPixels('The latest camera wins when alignments overlap');
+  report.retargetsWhileMoving = true;
   await page.setViewportSize({ width: 1360, height: 900 });
   await page.waitForTimeout(500);
   const scene = await get(`/api/runs/${baseline.id}/scene`),
@@ -157,14 +237,14 @@ try {
   );
   report.responsivePoseAndPointPicking = true;
   await page.getByRole('button', { name: '对齐至此观测相机', exact: true }).click();
-  await page.waitForTimeout(300);
+  await waitAligned();
   previous = await hash();
   await drag('left', 0.59, 0.56);
   assert.notEqual(await hash(), previous);
   report.observationEntryAlsoFree = true;
   await page.getByTestId('image-13').click();
   await align.click();
-  await page.waitForTimeout(500);
+  await waitAligned();
   await page.screenshot({ path: path.join(artifacts, 'aligned-free-view.png'), fullPage: true });
   previous = await hash();
   await page.getByLabel('重置视角', { exact: true }).click();
@@ -174,6 +254,15 @@ try {
   await drag('left', 0.6, 0.55);
   assert.notEqual(await hash(), previous);
   report.switchCameraResetAndOrbit = true;
+  await align.click();
+  await page.waitForTimeout(150);
+  await page.getByLabel('重置视角', { exact: true }).click();
+  assert.equal(await canvas.getAttribute('data-camera-aligning'), null);
+  await page.waitForTimeout(1000);
+  const reset = await hash();
+  await page.waitForTimeout(800);
+  assert.equal(await hash(), reset, 'Reset must cancel the unfinished transition');
+  report.resetInterruptsTransition = true;
   assert.deepEqual(errors, []);
   report.pageErrors = errors;
   report.status = 'passed';

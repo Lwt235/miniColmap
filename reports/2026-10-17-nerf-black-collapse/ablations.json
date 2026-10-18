@@ -1,0 +1,106 @@
+[
+  {
+    "variant": "bias_lr5e-4",
+    "steps": 300,
+    "learning_rate": 0.0005,
+    "first_validation_mse": 0.05307599529623985,
+    "first_validation_psnr": 12.751018530713003,
+    "final_image": {
+      "min": -1.1920928955078125e-07,
+      "mean": 8.009374496964483e-09,
+      "max": 5.960464477539063e-08,
+      "zero_fraction": 0.0
+    }
+  },
+  {
+    "variant": "lr_1e-4",
+    "steps": 300,
+    "learning_rate": 0.0001,
+    "first_validation_mse": 0.03229765221476555,
+    "first_validation_psnr": 14.908290463138094,
+    "final_image": {
+      "min": 0.057718660682439804,
+      "mean": 0.11444281786680222,
+      "max": 0.17738692462444305,
+      "zero_fraction": 0.0
+    }
+  },
+  {
+    "variant": "lr_3e-4",
+    "steps": 300,
+    "learning_rate": 0.0003,
+    "first_validation_mse": 0.0360739640891552,
+    "first_validation_psnr": 14.428061313868776,
+    "final_image": {
+      "min": 0.008229061961174011,
+      "mean": 0.0792047381401062,
+      "max": 0.18425516784191132,
+      "zero_fraction": 0.0
+    }
+  },
+  {
+    "variant": "lr_5e-4",
+    "steps": 300,
+    "learning_rate": 0.0005,
+    "first_validation_mse": 0.05307599529623985,
+    "first_validation_psnr": 12.751018530713003,
+    "final_image": {
+      "min": 0.0,
+      "mean": 2.8560559472978753e-10,
+      "max": 5.960464477539063e-08,
+      "zero_fraction": 0.2879860997200012
+    }
+  },
+  {
+    "variant": "original",
+    "steps": 300,
+    "learning_rate": 0.001,
+    "first_validation_mse": 0.05307599529623985,
+    "first_validation_psnr": 12.751018530713003,
+    "final_image": {
+      "min": 0.0,
+      "mean": 0.0,
+      "max": 0.0,
+      "zero_fraction": 1.0
+    }
+  },
+  {
+    "variant": "positive_density_bias",
+    "steps": 300,
+    "learning_rate": 0.001,
+    "first_validation_mse": 0.05307599529623985,
+    "first_validation_psnr": 12.751018530713003,
+    "final_image": {
+      "min": 0.0,
+      "mean": 2.4835269257783565e-11,
+      "max": 5.960464477539063e-08,
+      "zero_fraction": 0.9995833039283752
+    }
+  },
+  {
+    "variant": "softplus_lr5e-4",
+    "steps": 300,
+    "learning_rate": 0.0005,
+    "first_validation_mse": 0.05307599529623985,
+    "first_validation_psnr": 12.751018530713003,
+    "final_image": {
+      "min": 0.0,
+      "mean": 7.674097801668722e-09,
+      "max": 5.960464477539063e-08,
+      "zero_fraction": 0.004652777686715126
+    }
+  },
+  {
+    "variant": "xavier",
+    "steps": 300,
+    "learning_rate": 0.001,
+    "first_validation_mse": 0.05307599529623985,
+    "first_validation_psnr": 12.751018530713003,
+    "final_image": {
+      "min": 5.717297734445254e-43,
+      "mean": 9.68735136552823e-09,
+      "max": 5.978473893719638e-08,
+      "zero_fraction": 0.0
+    }
+  }
+]

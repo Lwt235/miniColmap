@@ -12,7 +12,7 @@ from pathlib import Path, PureWindowsPath
 
 import cv2
 import numpy as np
-from fastapi import FastAPI, HTTPException, Request
+from fastapi import FastAPI, HTTPException, Request, WebSocket
 from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, Response, StreamingResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -64,14 +64,18 @@ def artifact_paths(output: Path):
 def create_app(project_root: Path | None = None):
     root = Path(project_root).resolve() if project_root is not None else Path.cwd().resolve()
     store = Store(root)
+    from .live import LiveSessions
+    live = LiveSessions(store)
 
     @asynccontextmanager
     async def lifespan(app):
         yield
+        live.close()
         store.close()
 
     app = FastAPI(title="Mini-COLMAP 本地工作台", lifespan=lifespan)
     app.state.store = store
+    app.state.live = live
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost", "testserver"])
 
     @app.middleware("http")
@@ -213,7 +217,9 @@ def create_app(project_root: Path | None = None):
             raise ValueError("请先选择数据集")
         settings = resolve_config(body.get("config"))
         try:
-            return store.start(body["dataset_id"], settings)
+            with store.lock:
+                live.ensure_idle()
+                return store.start(body["dataset_id"], settings)
         except RuntimeError as exc:
             raise HTTPException(409, str(exc)) from exc
 
@@ -244,8 +250,10 @@ def create_app(project_root: Path | None = None):
             raise ValueError("photo_dataset_id 必须是已导入照片数据集 ID")
         settings = resolve_render_config(body.get("config"))
         try:
-            return store.start_rendering(body.get("source_run_id"), settings,
-                                         dataset_id=body.get("dataset_id"), photo_dataset_id=body.get("photo_dataset_id"))
+            with store.lock:
+                live.ensure_idle()
+                return store.start_rendering(body.get("source_run_id"), settings,
+                                             dataset_id=body.get("dataset_id"), photo_dataset_id=body.get("photo_dataset_id"))
         except RuntimeError as exc:
             raise HTTPException(409, str(exc)) from exc
 
@@ -253,6 +261,10 @@ def create_app(project_root: Path | None = None):
     def rendering_result(run_id: str):
         from .rendering import result
         return result(store, run_id)
+
+    @app.websocket("/api/rendering/runs/{run_id}/live")
+    async def live_rendering(websocket: WebSocket, run_id: str):
+        await live.handle(websocket, run_id)
 
     @app.post("/api/rendering/runs/{run_id}/render")
     async def rendering_preview(run_id: str, request: Request):
@@ -263,6 +275,8 @@ def create_app(project_root: Path | None = None):
             raise ValueError("该任务不是 NeRF 或 3DGS 训练")
         if run["status"] == "running" or any(item["status"] == "running" for item in store.list_runs()):
             raise HTTPException(409, "请先等待训练结束或取消当前任务，再渲染新视图")
+        if live.active is not None:
+            raise HTTPException(409, "请先关闭实时渲染，再生成离线预览")
         body = await request.json()
         if (not isinstance(body, dict) or set(body) - {"camera", "image_id"}
                 or (("camera" in body) == ("image_id" in body))):

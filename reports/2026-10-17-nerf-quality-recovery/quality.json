@@ -1,0 +1,50 @@
+{
+  "failed_160x120": {
+    "mse": 0.06350821595300328,
+    "psnr": 11.971700871136848,
+    "mean_brightness_mask_iou": 0.0,
+    "mean_boundary_f1_1px": 0.0,
+    "mean_brightness_foreground_mse": 0.23349040882153946
+  },
+  "low_lr_160x120": {
+    "mse": 0.063218949531967,
+    "psnr": 11.991527248245063,
+    "mean_brightness_mask_iou": 0.23742884332941508,
+    "mean_boundary_f1_1px": 0.13317523093224776,
+    "mean_brightness_foreground_mse": 0.1280838982625441
+  },
+  "recovered_160x120": {
+    "mse": 0.0038311573973094874,
+    "psnr": 24.16670005318204,
+    "mean_brightness_mask_iou": 0.8562566130588473,
+    "mean_boundary_f1_1px": 0.7414254565606437,
+    "mean_brightness_foreground_mse": 0.010939944281496784
+  },
+  "training_160x120": {
+    "mse": 0.0035950208031055,
+    "psnr": 24.442985921662768
+  },
+  "failed_80x60": {
+    "mse": 0.06174825064160607,
+    "psnr": 12.093753416708733,
+    "mean_brightness_mask_iou": 0.0,
+    "mean_boundary_f1_1px": 0.0,
+    "mean_brightness_foreground_mse": 0.22250940041108566
+  },
+  "low_lr_80x60": {
+    "mse": 0.061428834768858825,
+    "psnr": 12.116277226464849,
+    "mean_brightness_mask_iou": 0.24042378414512894,
+    "mean_boundary_f1_1px": 0.2480610526303744,
+    "mean_brightness_foreground_mse": 0.11976321786642075
+  },
+  "recovered_80x60": {
+    "mse": 0.002640153535387733,
+    "psnr": 25.783708164510813,
+    "mean_brightness_mask_iou": 0.8755996478398461,
+    "mean_boundary_f1_1px": 0.8939866233268507,
+    "mean_brightness_foreground_mse": 0.007747799920087511
+  },
+  "checkpoint_cpu_cuda_max_rgb_difference": 1.7881393432617188e-06,
+  "saved_summary_mse_difference": 4.2332844261278035e-11
+}

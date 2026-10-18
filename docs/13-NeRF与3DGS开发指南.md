@@ -2,6 +2,9 @@
 
 这是继 G1–G8、T1、M1–M3、B1 后的下一轮实现任务。你填写渲染数学与表示；数据适配、训练循环、保存、任务接口和前端已经提供。进一步的 SfM 性能优化移入 [开发看板](06-开发看板.md) 待办，不作为本轮前置条件。
 
+**2026-10-18 修订：3DGS 球谐颜色升为必修 S6，最终目标包含实时渲染；允许接入成熟 CUDA 光栅后端。**
+具体接口、公式与分阶段验收以[球谐与实时渲染开发约定](16-3DGS球谐与实时渲染.md)为准。NeRF进一步细化仍暂存，接下来由你实现3DGS数学。
+
 ## 目标与实际范围
 
 两条路线的输入前提不同：**NeRF只需要原图、内参K和相机位姿R/t，不需要预先构建点云。**本项目的点云初始化3DGS另需稀疏点/RGB。源模型与照片始终只读，训练生成独立输出。
@@ -20,7 +23,7 @@ NeRF的“直接训练”指输入已有相机位姿；当前固定位姿教学N
 | 路线 | 这一版待你实现 | 后续待办，当前没有冒充实现 |
 |---|---|---|
 | NeRF | 位置/方向编码、小型 MLP、沿单位射线采样、可微体渲染 | coarse/fine 层次重要性采样、论文网络规模与训练调度、NDC/背景模型、加速编码 |
-| 3DGS | 点云初始化、各向异性高斯、透视协方差投影、可微深度排序与 alpha 合成 | 球谐视角颜色、论文完整 clone/split 与 opacity reset、tile/binning CUDA 光栅器、L1+SSIM 论文损失 |
+| 3DGS | 点云初始化、各向异性高斯、透视协方差投影、可微深度排序与 alpha 合成、0至3阶球谐视角颜色 | 论文完整 clone/split 与 opacity reset、L1+SSIM 论文损失；可选 gsplat 接口已提供，CUDA实测与连续实时界面待数学闭环后验收 |
 | 密度控制 | S5 提供独立的确定性复制/剪枝练习，默认关闭 | 原论文完整策略和优化器动量迁移 |
 
 参考原始工作：[NeRF 项目与论文](https://www.matthewtancik.com/nerf)、[3D Gaussian Splatting 项目与论文](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/)。这里复用论文的表示思想与基本可微渲染关系，**不宣称论文指标、实时速度或完整复现**。
@@ -35,7 +38,8 @@ NeRF的“直接训练”指输入已有相机位姿；当前固定位姿教学N
 | N2 | `positional_encoding` | 频率顺序、任意前导维度、零层数、梯度 |
 | N3 | `volume_render` | 常密度介质、透明背景、遮挡、有限末段、可微优化 |
 | N4 | `build_nerf` | 注册的网络参数、密度只依赖位置、方向颜色、state_dict |
-| S1 | `initialize_gaussians` | 点/RGB 独立副本、log/logit、wxyz 四元数 |
+| S1 | `initialize_gaussians` | 点/RGB 独立副本、SH的DC初始化、log尺度/logit透明度、wxyz 四元数 |
+| S6 必修 | `evaluate_sh` | 世界观测方向、实球谐顺序、0至3阶、系数/方向梯度 |
 | S2 | `gaussian_covariance` | 旋转各向异性、正定、q/-q 一致、梯度 |
 | S3 | `project_gaussians` | 透视 Jacobian、非单位旋转、skew、正深度 |
 | S4 | `splat_gaussians` | 椭圆覆盖、前后遮挡、背景、空场景、梯度 |
@@ -71,7 +75,7 @@ Set-Location -LiteralPath 'D:\yy_folder\miniColmap'
 
 工作台选择CUDA，或导入完整的`configs/nerf_gpu.json`、`configs/3dgs_gpu.json`即可设置GPU训练；原smoke配置保留CPU。自检命令、复现安装、显存起步与报告见 [GPU环境与训练启动](15-GPU环境与训练启动.md)。算法未补完时，GPU训练入口仍准确停在N4/S1，不代表算法已完成。
 
-这里不需要 `torchvision`、COLMAP 外部程序或原版3DGS的CUDA扩展。NeRF可以直接用带位姿的多视图数据集；现有TempleRing 8图模型也能作为位姿来源。3DGS则可以复用其点云。
+数学参考路径不需要 `torchvision`、COLMAP 外部程序或CUDA光栅扩展。后续gsplat加速路径需要单独准备扩展，不能仅凭CUDA张量可用判断。NeRF可以直接用带位姿的多视图数据集；现有TempleRing 8图模型也能作为位姿来源。3DGS则可以复用其点云。
 
 ## 第一轮：逐个填空
 
@@ -82,7 +86,7 @@ Set-Location -LiteralPath 'D:\yy_folder\miniColmap'
 .\.venv\Scripts\python.exe -m pytest exercises/novel_view/test_nerf.py -k n4 -q
 ```
 
-然后按 `-k s1` 到 `-k s4` 验收 `test_gaussians.py`。不要删失败测试、改成 skip/xfail 或把参考图片当成模型输出。共 **79 项公开验收：71 项基础、8 项 S5 选修**。交付起点全部因具体 TODO 失败，工程回归另行通过。
+然后验收 `test_gaussians.py` 及新增 `test_spherical_harmonics.py`。不要删失败测试、改成 skip/xfail 或把参考图片当成模型输出。当前共 **113项公开验收：105项基础、8项S5选修**。原始79项交付基线保留；后续新增NeRF密度回归及33项球谐相关测试。工程回归与算法验收分别记录。
 
 两种常用验收：
 
@@ -93,7 +97,7 @@ Set-Location -LiteralPath 'D:\yy_folder\miniColmap'
 .\.venv\Scripts\python.exe -m pytest exercises/novel_view -q
 ```
 
-79 项不是图像质量认证。公式、梯度和边界通过后，还需下面的真实图片实验。
+公开测试不是图像质量认证。公式、梯度和边界通过后，还需下面的真实图片实验。
 
 ## 第二轮：NeRF 最小训练
 
@@ -115,7 +119,7 @@ Set-Location -LiteralPath 'D:\yy_folder\miniColmap'
 
 ## 第三轮：3DGS 最小训练
 
-完成 S1–S4，默认不启用 S5：
+完成 S1–S4 和 S6，默认不启用 S5：
 
 ```powershell
 .\.venv\Scripts\python.exe -m minicolmap train --method 3dgs --model outputs/ui_20261017_143849_13015f/model.json --dataset data/middlebury_temple_ring/dataset.json --output outputs/3dgs_smoke01 --config configs/3dgs_smoke.json
@@ -149,7 +153,7 @@ outputs/<独立训练目录>/
   training_scene.json     归一化、相机、训练/验证 ID
   training.json           已完成迭代记录及预览索引
   checkpoint.pt           可重新渲染的真实参数，坐标已归一化
-  gaussians.npz           仅3DGS：均值/完整协方差已还原到原始SfM单位
+  gaussians.npz           仅3DGS：原始SfM单位的几何、完整SH系数与激活阶数
   previews/               模型输出与同分辨率参考图片
   summary.json            成功后最终指标
   run_status.json         running/completed/todo/failed/cancelled
@@ -179,13 +183,14 @@ CLI 重渲染示例：
 
 ## 验收与记录
 
-- [ ] N1–N4 共39项通过（包含体渲染优化闭环），不是用参考图代替渲染。
-- [ ] S1–S4 共32项通过（包含 splatting 优化闭环）。
+- [x] N1–N4 共40项通过（包含体渲染优化闭环与后补密度初始化回归）。
+- [ ] S1–S4 与 S6 共65项基础通过（包含球谐、splatting优化闭环）。
 - [ ] NeRF / 3DGS 两步 smoke 各完成并保留真实权重、指标和输出。
 - [ ] 增加训练预算后，记录训练与留出视图误差、时间、内存/显存和代表性图像。
 - [ ] 在工作台查看原图对照、原相机渲染、自由视角、刷新恢复、取消及失败提示。
 - [ ] 仍通过旧 SfM/已完成练习回归，源模型和位姿不变。
 - [ ] S5 选修8项通过后再启用，单独比较密度变化与验证误差。
 - [ ] 清楚区分教学基线、论文复现和后续 CUDA 性能工作，不把框架交付算作算法完成。
+- [ ] gsplat真实前向/反向与参考对照通过，再验收720p、最多10万高斯、3阶SH的端到端≥30FPS连续交互目标，详见文档16。
 
 建议记录：本次 TODO、手算预期、测试通过数、训练/验证 ID、配置、loss/PSNR、代表性输出、最明显失败现象、下一次只解决的问题。

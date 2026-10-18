@@ -1,0 +1,59 @@
+{
+  "id": "22a05af63cc74ef2",
+  "name": "ui_nerf_20261017_231626_22a05a",
+  "pipeline": "nerf",
+  "source_kind": "sfm_result",
+  "status": "completed",
+  "stage": "done",
+  "registered_images": 47,
+  "point_count": 6570,
+  "image_count": 47,
+  "elapsed_seconds": 420.51600000000326,
+  "snapshots": [
+    {
+      "id": "source",
+      "label": "SfM 输入（只读）",
+      "stage": "source"
+    }
+  ],
+  "images_available": true,
+  "warnings": [],
+  "output_path": "D:\\yy_folder\\miniColmap\\outputs\\ui_nerf_20261017_231626_22a05a",
+  "training_metrics": {
+    "step": 6000,
+    "total": 6000,
+    "loss": 0.004623464308679104,
+    "validation_mse": 0.003831157354976643,
+    "psnr": 24.166700101169944,
+    "psnr_scope": "mean_validation_view_mse"
+  },
+  "source_run_id": "e6910ea041774699",
+  "dataset_id": "dataset-3ee85951fffc90ff",
+  "runtime": {
+    "platform": "win32",
+    "cpu_count": 20,
+    "python_trace_active": false,
+    "qos_policy": "high",
+    "qos_applied": true,
+    "windows_power_throttling": {
+      "before": {
+        "control_mask": 0,
+        "state_mask": 0
+      },
+      "requested": {
+        "control_mask": 1,
+        "state_mask": 0
+      }
+    },
+    "process_cpu_seconds": 406.140625
+  },
+  "message": "保存真实验证视图与权重",
+  "completed": 6000,
+  "total": 6000,
+  "latest_preview": {
+    "step": 6000,
+    "image_id": 16,
+    "url": "/api/runs/22a05af63cc74ef2/artifacts/previews/render-1ec5f40c7c78.png",
+    "reference_url": "/api/runs/22a05af63cc74ef2/artifacts/previews/reference-16.png"
+  }
+}

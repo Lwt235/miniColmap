@@ -24,8 +24,10 @@ npm run format
 
 `build` 首先进行 TypeScript 检查，再把资源写入 `src/minicolmap/ui/static`。提交前端修改时应一并更新生产资源。
 
-`npm run test:e2e:camera` 只读验证一键对齐相机后立即旋转、平移、缩放、再次对齐、窗口变化和选点，不启动或取消重建任务。
-`cameraView.ts` 把保存的R/t转换成自由观察相机，并参考K的垂直视场角。对齐后使用整个三维面板，保持自由控制。
+`npm run test:e2e:camera` 只读验证平滑对齐、动画中鼠标接管与连续切换、对齐后的旋转/平移/缩放、窗口变化和选点，不启动或取消重建任务。
+`cameraView.ts` 把保存的R/t转换成自由观察相机，并参考K的垂直视场角；位置与四元数朝向以750ms缓入缓出动画过渡。对齐后使用整个三维面板，保持自由控制。动画和阻尼结束后恢复按需绘制。
+
+`node e2e/gaussian-sh-config.mjs` 使用真实本地API，只读检查3DGS球谐阶数、逐阶激活间隔、后端选择、导出/校验与恢复默认，不启动训练。CUDA光栅与最终实时性能另行实测，见[文档16](../docs/16-3DGS球谐与实时渲染.md)。
 
 `node e2e/adaptive-config.mjs` 验证自适应参数默认值、校验、导入导出，并启动一个独立8图任务，检查非默认参数实际保存和成功重建。
 需要已准备TempleRing连续8图，且当前没有活动任务；测试只在失败时清理它自己创建的任务。
@@ -37,3 +39,7 @@ npm run format
 主要组件：`App` 管理任务、SSE、数据和场景状态；`Viewer` 批量绘制点与相机；`Inspector` 按需读取完整轨迹并叠加像素观测；`ConfigPanel` 与 `ImportDialog` 连接现有配置校验和导入接口。相机几何与显示筛选位于 `math.ts`，测试覆盖非单位旋转、去标定和原始索引保留。
 
 相机位姿采用世界到相机的 `R,t`，相机中心为 `−Rᵀt`，相机局部坐标为 `+Z` 朝前、`+Y` 朝下。Three.js 视锥直接由这些量构造，不用其默认相机朝向推断结果。RGB 字节先从 sRGB 转成线性色值，再交给输出为 sRGB 的渲染器。
+
+3DGS实时入口为`GaussianLiveViewer`：OrbitControls仅控制观察相机，`gaussianLive.ts`处理CV坐标/内参、最新相机请求和每个RAF至多一次图像呈现。WebSocket从独立CUDA进程获取真实球谐高斯JPEG帧，模型常驻，不重复读取checkpoint。关闭/离开面板会终止会话。
+
+`npm run test:e2e:gaussian-live`读取已完成的真实3DGS任务，验证旋转、平移、缩放、持续拖拽、对齐、适配、resize、关闭/重连，不启动训练。默认任务ID为`695361f9be8042ed`，可用`GSPLAT_RUN_ID`覆盖。`node e2e/gaussian-live-perf.mjs`另做720p、10秒预热+60秒浏览器呈现计时；`scripts/check_gsplat_live.py`测CUDA/JPEG/传输解码，二者口径分开。验收见[报告](../reports/2026-10-18-3dgs-resolution-live/README.md)。

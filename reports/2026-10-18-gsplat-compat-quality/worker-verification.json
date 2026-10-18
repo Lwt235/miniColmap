@@ -1,0 +1,30 @@
+{
+  "id": "54c91b7c6d294e1e",
+  "name": "ui_3dgs_20261018_140815_54c91b",
+  "status": "completed",
+  "backend": "gsplat",
+  "iterations": 2,
+  "metrics": {
+    "step": 2,
+    "total": 2,
+    "loss": 0.05121171846985817,
+    "validation_mse": 0.05207508785480803,
+    "psnr": 12.83369988690324,
+    "psnr_scope": "mean_validation_view_mse"
+  },
+  "previews": [
+    {
+      "step": 1,
+      "image_id": 4,
+      "url": "/api/runs/54c91b7c6d294e1e/artifacts/previews/step-000001.png",
+      "reference_url": "/api/runs/54c91b7c6d294e1e/artifacts/previews/reference-4.png"
+    },
+    {
+      "step": 2,
+      "image_id": 4,
+      "url": "/api/runs/54c91b7c6d294e1e/artifacts/previews/step-000002.png",
+      "reference_url": "/api/runs/54c91b7c6d294e1e/artifacts/previews/reference-4.png"
+    }
+  ],
+  "error": null
+}

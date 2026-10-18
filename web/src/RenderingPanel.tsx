@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Download, Image as ImageIcon, LoaderCircle, Play, RotateCcw, Upload } from 'lucide-react';
 import { api, downloadJSON, json, number } from './api';
+import GaussianLiveViewer from './GaussianLiveViewer';
 import {
   isRenderingRun,
   parseRenderCamera,
@@ -19,6 +20,8 @@ import type {
 
 type Capabilities = {
   torch_available: boolean;
+  gsplat_available?: boolean;
+  gsplat_native_available?: boolean;
   cuda_available: boolean | null;
   cuda_note?: string;
   methods: ('nerf' | '3dgs')[];
@@ -412,6 +415,55 @@ export default function RenderingPanel({
                 </select>
               </label>
               <div className="rendering-fields">
+                <label>
+                  图像背景
+                  <select
+                    aria-label="图像背景"
+                    value={config.background ?? 'white'}
+                    onChange={(e) =>
+                      setConfig({ ...config, background: e.target.value as 'white' | 'black' })
+                    }
+                  >
+                    <option value="white">白色</option>
+                    <option value="black">黑色</option>
+                  </select>
+                  <small>匹配照片的背景颜色</small>
+                </label>
+                {method === 'nerf' && (
+                  <>
+                    <label>
+                      训练深度采样
+                      <select
+                        aria-label="训练深度采样"
+                        value={config.stratified_sampling ? 'random' : 'fixed'}
+                        onChange={(e) =>
+                          setConfig({ ...config, stratified_sampling: e.target.value === 'random' })
+                        }
+                      >
+                        <option value="fixed">固定等距</option>
+                        <option value="random">随机分层</option>
+                      </select>
+                      <small>渲染预览始终使用固定采样</small>
+                    </label>
+                    <label>
+                      光线批次
+                      <select
+                        aria-label="光线批次"
+                        value={config.ray_sampling ?? 'image'}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            ray_sampling: e.target.value as 'image' | 'all_images',
+                          })
+                        }
+                      >
+                        <option value="image">每批单张照片</option>
+                        <option value="all_images">混合训练照片</option>
+                      </select>
+                      <small>混合模式仅使用训练照片</small>
+                    </label>
+                  </>
+                )}
                 {fields
                   .filter(
                     (field) =>
@@ -469,6 +521,64 @@ export default function RenderingPanel({
                 <details open>
                   <summary>3DGS 高斯参数</summary>
                   <div className="rendering-fields">
+                    <label>
+                      球谐阶数
+                      <select
+                        aria-label="球谐阶数"
+                        value={config.gaussian.sh_degree ?? 3}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            gaussian: { ...config.gaussian, sh_degree: Number(e.target.value) },
+                          })
+                        }
+                      >
+                        {[0, 1, 2, 3].map((degree) => (
+                          <option key={degree} value={degree}>
+                            {degree} 阶 · {(degree + 1) ** 2} 个系数 / 通道
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    <label>
+                      球谐升阶间隔
+                      <input
+                        type="number"
+                        min={0}
+                        max={1000000}
+                        step={1}
+                        aria-label="球谐升阶间隔"
+                        value={config.gaussian.sh_degree_interval ?? 0}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            gaussian: {
+                              ...config.gaussian,
+                              sh_degree_interval: e.target.valueAsNumber,
+                            },
+                          })
+                        }
+                      />
+                    </label>
+                    <label>
+                      高斯光栅后端
+                      <select
+                        aria-label="高斯光栅后端"
+                        value={config.gaussian.backend ?? 'reference'}
+                        onChange={(e) =>
+                          setConfig({
+                            ...config,
+                            gaussian: {
+                              ...config.gaussian,
+                              backend: e.target.value as 'reference' | 'gsplat',
+                            },
+                          })
+                        }
+                      >
+                        <option value="reference">reference · 数学验证</option>
+                        <option value="gsplat">gsplat · CUDA 光栅加速</option>
+                      </select>
+                    </label>
                     {(
                       [
                         ['initial_scale', '初始高斯尺度', 0.001],
@@ -497,8 +607,15 @@ export default function RenderingPanel({
                   </div>
                   <p className="rendering-note">
                     点数超过高斯上限时稳定子采样。首次冒烟实验推荐降采样 16 倍、最多 128
-                    个高斯。增密间隔 0
-                    表示禁用；开启前请补完增密与剪枝练习。此版本为教学渲染器，不承诺实时 CUDA 性能。
+                    个高斯。增密间隔 0 表示禁用；开启前请补完增密与剪枝练习。球谐升阶间隔 0
+                    表示直接启用全部阶数，1000 表示每 1000 步升一阶。 球谐颜色须完成 S6。reference
+                    用于数学验证；gsplat 需 CUDA 和独立光栅扩展。
+                    {capabilities?.gsplat_native_available
+                      ? '检测到已编译且通过自检的本机 gsplat 扩展；训练时检查 CUDA 设备。'
+                      : capabilities?.gsplat_available
+                        ? '检测到 gsplat 包，CUDA 扩展仍需编译与自检。'
+                        : '当前未检测到 gsplat 包。'}
+                    完成训练后可开启自由视角 GPU 渲染；静态预览仍可用于原图对照。
                   </p>
                 </details>
               )}
@@ -607,6 +724,15 @@ export default function RenderingPanel({
             </strong>
           </div>
         </div>
+        {trainingRun?.pipeline === '3dgs' && trainingRun.status === 'completed' && (
+          <GaussianLiveViewer
+            key={trainingRun.id}
+            runId={trainingRun.id}
+            scene={scene}
+            selectedCameraId={selectedCameraId}
+            disabled={!!activeRun}
+          />
+        )}
         <div className="rendering-comparison" data-testid="rendering-comparison">
           <figure>
             <figcaption>

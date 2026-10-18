@@ -1,0 +1,13 @@
+{
+  "python": "3.12.7",
+  "torch": "2.7.1+cu128",
+  "cuda": "12.8",
+  "gpu": "NVIDIA GeForce RTX 4060 Laptop GPU",
+  "pipeline_seconds": 418.0469999999914,
+  "sha256": {
+    "src/minicolmap/rendering/algorithms.py": "0d2882e292453b39c4606fbe1fb77003a940a3eb0cbd7a547c8f190d60f45fb5",
+    "src/minicolmap/rendering/pipeline.py": "18ac143a14ba60060d8c62ce9ca36d03eee26297aefee17119feb25131efe48c",
+    "src/minicolmap/rendering/config.py": "38bfadd3aabaf08729b56b1558a7b9d76f874c7fb10566c4f847038f1f233cea",
+    "configs/nerf_temple_quality.json": "c67c262a4b88cd680c25aa1f1a13bfeeed00f05e140e28a3cddd0a85348dfc4b"
+  }
+}

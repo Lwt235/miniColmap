@@ -4,7 +4,7 @@ NeRF从原始RGB照片、内参和位姿出发，**不要求预先构建点云**
 
 **仅靠彩色点云也不能完成照片监督训练。**两条路线均需照片和K/R/t。NeRF可直接读取含poses的dataset.json，或0点相机模型；其归一化仅用相机中心。3DGS要求点云模型。加载model.json后可显式关联原照片数据集，通过身份/内参/尺寸校验后才训练；不自动猜位姿或照片关联。
 
-这里是可在 CPU 上检查数学的教学版本：NeRF 为位置/方向编码、MLP 和体渲染；3DGS 为各向异性协方差、透视投影和可微 alpha splatting。3DGS 第一版用 RGB 颜色参数，未包含原论文的球谐外观及实时 CUDA tile rasterizer。S5 是默认关闭的选修拓扑更新。
+这里提供可在CPU检查的数学参考：NeRF为位置/方向编码、MLP和体渲染；3DGS为各向异性协方差、透视投影、可微alpha splatting及必修实球谐颜色。2026-10-18按新要求，颜色状态改为SH系数，新增S6。最终包括实时渲染，允许接入成熟CUDA后端；当前gsplat接口已提供，扩展与连续实时界面仍待验收。见[文档16](../../docs/16-3DGS球谐与实时渲染.md)。S5仍为选修。
 
 ## 安装与运行
 
@@ -26,14 +26,17 @@ NeRF从原始RGB照片、内参和位姿出发，**不要求预先构建点云**
 | N1 | `generate_rays` | 世界射线、相机中心、单位方向、像素坐标 | 10 |
 | N2 | `positional_encoding` | 频率排列、梯度、最后一维编码 | 8 |
 | N3 | `volume_render` | 有限末段、透射率、背景与累积深度 | 13 |
-| N4 | `build_nerf` | 可训练 MLP、密度与方向解耦、状态保存 | 8 |
-| S1 | `initialize_gaussians` | 稀疏点初值、log/logit 参数化、可训练叶张量 | 7 |
+| N4 | `build_nerf` | 可训练 MLP、密度与方向解耦、状态保存、深层密度初始化 | 9 |
+| S1 | `initialize_gaussians` | 稀疏点初值、SH DC、log尺度/logit透明度、可训练叶张量 | 15 |
+| S6（必修） | `evaluate_sh` | 实球谐0至3阶、世界方向、梯度、Adam拟合与留出方向 | 24 |
 | S2 | `gaussian_covariance` | wxyz 四元数、各向异性协方差 | 4 |
 | S3 | `project_gaussians` | 透视 Jacobian、旋转后的协方差、正深度 | 9 |
-| S4 | `splat_gaussians` | 椭圆覆盖、深度排序、前向 alpha 合成 | 12 |
+| S4 | `splat_gaussians` | 椭圆覆盖、深度排序、前向alpha合成、SH辐射值 | 13 |
 | S5（选修） | `densify_and_prune` | 确定性复制/剪枝与优化器重建 | 8 |
 
-共 **79 项测试**，其中 **71 项基础必修、8 项 S5 选修**。交付时 79 项均因对应的 `TODO N…/S…` 明确失败；这是学习起点。先完成 N1–N4，跑通 NeRF 小图训练，再完成 S1–S4，最后决定是否启用 S5。
+当前共 **113项测试**，其中 **105项基础必修、8项S5选修**。NeRF40项、3DGS73项（65基础+8选修）；新增球谐文件33项中含8项S1、1项S4、24项S6。最初79项未填空基线保留，NeRF随后增加1项密度回归。2026-10-18两条路线均已实现并通过公开测试；3DGS另通过10项真实CUDA数值/设备回归，见[设备修复报告](../../reports/2026-10-18-3dgs-device-fix/README.md)。
+
+真实47图的轮廓恢复、背景与随机采样说明见[画质恢复报告](../../reports/2026-10-17-nerf-quality-recovery/README.md)。数学通过不能代替真实多视角画质检查。
 
 逐项检查：
 
@@ -41,6 +44,7 @@ NeRF从原始RGB照片、内参和位姿出发，**不要求预先构建点云**
 .\.venv\Scripts\python.exe -m pytest exercises/novel_view/test_nerf.py -k n1 -q
 .\.venv\Scripts\python.exe -m pytest exercises/novel_view/test_nerf.py -q
 .\.venv\Scripts\python.exe -m pytest exercises/novel_view/test_gaussians.py -k "not s5" -q
+.\.venv\Scripts\python.exe -m pytest exercises/novel_view/test_spherical_harmonics.py -q
 .\.venv\Scripts\python.exe -m pytest exercises/novel_view/test_gaussians.py -k s5 -q
 ```
 
@@ -64,7 +68,7 @@ N4 返回真正的 `torch.nn.Module`，前向接受 `xyz/directions` 两个 `(N,
 
 ### 高斯
 
-高斯状态固定五个键：`means (G,3)`、`log_scales (G,3)`、`quaternions (G,4)`、`color_logits (G,3)`、`opacity_logits (G,)`。尺度通过 `exp` 解码，RGB/不透明度通过 `sigmoid` 解码；四元数采用 **wxyz** 并归一化。
+高斯状态固定五个键：`means (G,3)`、`log_scales (G,3)`、`quaternions (G,4)`、`sh_coeffs (G,(L+1)^2,3)`、`opacity_logits (G,)`。尺度通过exp、透明度通过sigmoid解码；四元数采用wxyz。S6对`means-C`世界方向归一化，实球谐求和后加0.5并仅截断下界，RGB不使用sigmoid。
 
 S3 输出 `means2d/cov2d/depths/visible`。二维协方差增加 `min_variance*I`，其单位是像素平方。正深度即可 `visible=True`，不在这一步按图像边界删除中心位于画外的高斯；其椭圆仍可能覆盖图像。非正深度返回有限占位值，不能投影到镜像位置。
 

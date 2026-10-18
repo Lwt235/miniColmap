@@ -1,8 +1,8 @@
 """Training/I/O plumbing. All learned rendering mathematics stays in learner TODOs.
 
-The reference renderer is intentionally small: one coarse NeRF and RGB-only
-anisotropic Gaussian splats. It is neither an original-paper reproduction nor a
-CUDA rasterizer. Original SfM model, images, poses and calibration are read-only.
+The reference renderer is intentionally small: one coarse NeRF and SH-colored
+Gaussian splats. The optional gsplat adapter accelerates projection/rasterization;
+it is not a complete paper reproduction. SfM inputs remain read-only.
 """
 from __future__ import annotations
 
@@ -19,6 +19,7 @@ import numpy as np
 from . import algorithms as learner
 from .config import resolve_render_config
 from .data import load_training_scene, load_posed_dataset
+from .gaussian_backend import active_sh_degree, rasterize_gsplat
 
 
 def _torch(device='cpu'):
@@ -76,22 +77,52 @@ def _pixels(width, height, torch, device):
     return torch.stack([x, y], dim=-1).reshape(-1, 2).float()
 
 
-def _nerf_rays(network, K, R, t, pixels, config, torch):
-    origins, directions = learner.generate_rays(K, R, t, pixels)
+def _background(config, torch, device, dtype=None):
+    return torch.full((3,), 0. if config.get('background', 'white') == 'black' else 1.,
+                      device=device, dtype=dtype or torch.float32)
+
+
+def _nerf_ray_bundle(network, origins, directions, config, torch, *, training=False):
+    """Sample a world-ray batch; all network/compositing maths stays in learner."""
     count = config['samples_per_ray']
     # Left-edge samples cover [near, far] with equal finite intervals. No infinite
     # terminal delta or hierarchical sampling is hidden in the learner contract.
-    positions = config['near'] + torch.arange(count, device=K.device, dtype=K.dtype) * (
+    positions = config['near'] + torch.arange(count, device=origins.device, dtype=origins.dtype) * (
         config['far'] - config['near']) / count
-    positions = positions.expand(len(pixels), -1)
+    positions = positions.expand(len(origins), -1)
+    if training and config.get('stratified_sampling', False):
+        # Jitter independently inside ordered bins. Anchor the first sample at
+        # near so finite-interval compositing still integrates the whole range.
+        jitter = torch.rand_like(positions)
+        jitter[:, 0] = 0
+        positions = positions + jitter * ((config['far'] - config['near']) / count)
     xyz = origins[:, None, :] + directions[:, None, :] * positions[..., None]
     dirs = directions[:, None, :].expand_as(xyz)
     rgb, sigma = network(xyz.reshape(-1, 3), dirs.reshape(-1, 3))
     return learner.volume_render(rgb.reshape(-1, count, 3), sigma.reshape(-1, count),
-                                 positions, config['far'], torch.ones(3, device=K.device))
+                                 positions, config['far'], _background(config, torch, origins.device, origins.dtype))
 
 
-def _render(network, state, frame, config, torch, device):
+def _nerf_rays(network, K, R, t, pixels, config, torch, *, training=False):
+    origins, directions = learner.generate_rays(K, R, t, pixels)
+    return _nerf_ray_bundle(network, origins, directions, config, torch, training=training)
+
+
+def _training_ray_pool(scene, torch, device):
+    """Only training photos enter the pool; no validation colors or rays."""
+    origins, directions, targets = [], [], []
+    with torch.no_grad():
+        for image_id in scene.train_ids:
+            frame = scene.frames[image_id]
+            ray_o, ray_d = learner.generate_rays(*[_tensor(getattr(frame, k), torch, device)
+                for k in ('K', 'R', 't')], _pixels(frame.width, frame.height, torch, device))
+            origins.append(ray_o)
+            directions.append(ray_d)
+            targets.append(_tensor(frame.rgb, torch, device).reshape(-1, 3))
+    return torch.cat(origins), torch.cat(directions), torch.cat(targets)
+
+
+def _render(network, state, frame, config, torch, device, *, sh_degree=None):
     K, R, t = [_tensor(frame[key], torch, device) for key in ('K', 'R', 't')]
     width, height = frame['width'], frame['height']
     if config['method'] == 'nerf':
@@ -100,13 +131,24 @@ def _render(network, state, frame, config, torch, device):
         for chunk in pixels.split(config['rays_per_batch']):
             chunks.append(_nerf_rays(network, K, R, t, chunk, config, torch)['rgb'])
         return torch.cat(chunks).reshape(height, width, 3)
-    covariance = learner.gaussian_covariance(state['log_scales'], state['quaternions'])
-    projected = learner.project_gaussians(state['means'], covariance, K, R, t)
+    means = state['means']
+    # Evaluate SH only on positive-depth entries. A center at the observer is
+    # invisible and must not generate an invalid zero viewing direction.
+    front = ((means @ R.T + t)[:, 2] > 0)
+    means = means[front]
+    covariance = learner.gaussian_covariance(state['log_scales'][front], state['quaternions'][front])
+    center = -(R.T @ t)
+    colors = learner.evaluate_sh(state['sh_coeffs'][front], means - center,
+        config['gaussian']['sh_degree'] if sh_degree is None else sh_degree)
+    opacities = state['opacity_logits'].sigmoid().reshape(-1)[front]
+    background = _background(config, torch, device)
+    if config['gaussian']['backend'] == 'gsplat':
+        return rasterize_gsplat(means, covariance, colors, opacities, K, R, t, width, height, background)
+    projected = learner.project_gaussians(means, covariance, K, R, t)
     visible = projected['visible']
     return learner.splat_gaussians(
         projected['means2d'][visible], projected['cov2d'][visible], projected['depths'][visible],
-        state['color_logits'].sigmoid()[visible], state['opacity_logits'].sigmoid().reshape(-1)[visible],
-        width, height, torch.ones(3, device=device))['rgb']
+        colors[visible], opacities[visible], width, height, background)['rgb']
 
 
 def _frame_record(frame):
@@ -122,6 +164,9 @@ def _save_checkpoint(output, config, scene, network, state, step, torch):
                   'train_ids': scene.train_ids, 'validation_ids': scene.validation_ids,
                   'state': {k: v.detach().cpu() for k, v in (
                       network.state_dict() if network is not None else state).items()}}
+    if state is not None:
+        checkpoint.update(schema_version=2, color_model='real_sh',
+                          active_sh_degree=active_sh_degree(config, step))
     temporary = output / 'checkpoint.pt.tmp'
     torch.save(checkpoint, temporary)
     _replace(temporary, output / 'checkpoint.pt')
@@ -133,13 +178,18 @@ def _save_checkpoint(output, config, scene, network, state, step, torch):
         temporary = output / 'gaussians.npz.tmp'
         with temporary.open('wb') as stream:
             np.savez_compressed(stream, means=means, covariances=covariance * scene.scale ** 2,
-                                colors=state['color_logits'].sigmoid().detach().cpu().numpy(),
+                                scales=state['log_scales'].exp().detach().cpu().numpy() * scene.scale,
+                                quaternions=state['quaternions'].detach().cpu().numpy(),
+                                sh_coeffs=state['sh_coeffs'].detach().cpu().numpy(),
+                                sh_degree=config['gaussian']['sh_degree'],
+                                active_sh_degree=active_sh_degree(config, step), schema_version=2,
+                                sh_direction='camera_to_gaussian_world',
                                 opacities=state['opacity_logits'].sigmoid().detach().cpu().numpy())
         _replace(temporary, output / 'gaussians.npz')
 
 
 def train(source_model_path, dataset_path, output, config=None, *, on_event=None):
-    """Run the supplied trainer after the learner completes N1-N4 or S1-S4.
+    """Run the supplied trainer after the learner completes N1-N4 or S1-S4/S6.
 
     Loss, Adam, deterministic batches, evaluation, persistence and notifications
     are provided engineering. The renderer/network implementations are not.
@@ -202,13 +252,18 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
             indices = np.linspace(0, len(scene.points) - 1, count, dtype=int)
             initial = learner.initialize_gaussians(_tensor(scene.points[indices], torch, device),
                 _tensor(scene.colors[indices], torch, device),
-                config['gaussian']['initial_scale'], config['gaussian']['initial_opacity'])
+                config['gaussian']['initial_scale'], config['gaussian']['initial_opacity'],
+                config['gaussian']['sh_degree'])
             state = {k: torch.nn.Parameter(v.detach().clone()) for k, v in initial.items()}
             parameters = list(state.values())
         optimizer = torch.optim.Adam(parameters, lr=config['learning_rate'])
+        ray_pool = (_training_ray_pool(scene, torch, device)
+                    if network is not None and config.get('ray_sampling') == 'all_images' else None)
         warned_empty_views = set()
         for step in range(1, config['iterations'] + 1):
-            if state is None:
+            if ray_pool is not None:
+                frame = None
+            elif state is None:
                 frame = scene.frames[int(rng.choice(scene.train_ids))]
             else:
                 # A legal empty splat returns a constant background, so there
@@ -228,17 +283,25 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
                         event('training', kind='warning', message=f'训练相机 #{candidate.image_id} 没有正深度高斯，本轮跳过')
                 if frame is None:
                     raise ValueError('所有训练视角都没有正深度高斯；检查位姿、点云与初始化')
-            target = _tensor(frame.rgb, torch, device)
+            target = None if frame is None else _tensor(frame.rgb, torch, device)
             optimizer.zero_grad(set_to_none=True)
-            if network is not None:
+            if ray_pool is not None:
+                indices = torch.as_tensor(rng.integers(0, len(ray_pool[2]),
+                    size=config['rays_per_batch']), device=device)
+                prediction = _nerf_ray_bundle(network, ray_pool[0][indices], ray_pool[1][indices],
+                    config, torch, training=True)['rgb']
+                loss = (prediction - ray_pool[2][indices]).square().mean()
+            elif network is not None:
                 indices = torch.as_tensor(rng.integers(0, frame.width * frame.height,
                     size=config['rays_per_batch']), device=device)
                 pixels = torch.stack([indices % frame.width, indices // frame.width], dim=-1).float()
                 prediction = _nerf_rays(network, _tensor(frame.K, torch, device),
-                    _tensor(frame.R, torch, device), _tensor(frame.t, torch, device), pixels, config, torch)['rgb']
+                    _tensor(frame.R, torch, device), _tensor(frame.t, torch, device), pixels, config, torch,
+                    training=True)['rgb']
                 loss = (prediction - target.reshape(-1, 3)[indices]).square().mean()
             else:
-                prediction = _render(None, state, _frame_record(frame), config, torch, device)
+                prediction = _render(None, state, _frame_record(frame), config, torch, device,
+                                     sh_degree=active_sh_degree(config, step))
                 loss = (prediction - target).square().mean()
             if not torch.isfinite(loss):
                 raise ValueError('训练损失不是有限数；检查 TODO 数值稳定性')
@@ -263,7 +326,8 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
             if step % config['preview_every'] == 0 or step == config['iterations']:
                 validation = scene.frames[scene.validation_ids[0]]
                 with torch.no_grad():
-                    rgb = _render(network, state, _frame_record(validation), config, torch, device)
+                    rgb = _render(network, state, _frame_record(validation), config, torch, device,
+                                  sh_degree=active_sh_degree(config, step))
                     mse = float((rgb - _tensor(validation.rgb, torch, device)).square().mean())
                 if not math.isfinite(mse):
                     raise ValueError('验证图像含 NaN/Inf')
@@ -283,7 +347,8 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
         with torch.no_grad():
             for image_id in scene.validation_ids:
                 frame = scene.frames[image_id]
-                result = _render(network, state, _frame_record(frame), config, torch, device)
+                result = _render(network, state, _frame_record(frame), config, torch, device,
+                                 sh_degree=active_sh_degree(config, config['iterations']))
                 errors.append(float((result - _tensor(frame.rgb, torch, device)).square().mean()))
         validation_mse = float(np.mean(errors))
         if not math.isfinite(validation_mse):
@@ -311,10 +376,13 @@ def render_checkpoint(output, *, camera=None, image_id=None):
     output = Path(output)
     torch = _torch()
     checkpoint = torch.load(output / 'checkpoint.pt', map_location='cpu', weights_only=True)
-    if checkpoint.get('schema_version') != 1:
+    if checkpoint.get('schema_version') not in (1, 2):
         raise ValueError('不支持的训练权重格式')
+    if checkpoint.get('pipeline') == '3dgs' and 'sh_coeffs' not in checkpoint['state']:
+        raise ValueError('旧 RGB-only 3DGS 权重不能当作球谐模型；请用新接口重新训练')
     config = resolve_render_config(checkpoint['config'])
     config['device'] = 'cpu'  # portable inspection; training can still use CUDA
+    config['gaussian']['backend'] = 'reference'
     if (camera is None) == (image_id is None):
         raise ValueError('请只提供 image_id 或 camera 之一')
     if camera is not None:
@@ -345,7 +413,8 @@ def render_checkpoint(output, *, camera=None, image_id=None):
     else:
         state = checkpoint['state']
     with torch.no_grad():
-        rgb = _render(network, state, frame, config, torch, 'cpu')
+        rgb = _render(network, state, frame, config, torch, 'cpu',
+                      sh_degree=checkpoint.get('active_sh_degree'))
     relative = f'previews/render-{uuid.uuid4().hex[:12]}.png'
     _write_image(output / relative, rgb.cpu().numpy())
     preview = {'path': relative, 'step': checkpoint['step']}
