@@ -1,140 +1,120 @@
----
-tags: [项目, SfM, 实习准备]
-status: real-small-scene-validated
-created: 2026-10-14
----
-
 # Mini-COLMAP
 
-项目根目录：`D:\yy_folder\miniColmap`。代码、环境、数据与输出均以此目录为基准。
+**从多视图照片到稀疏重建、NeRF 与 3D Gaussian Splatting 的本地三维视觉工作台。**
 
-用 Python 实现一个可以解释、验证和展示的增量稀疏 SfM 项目。
-输入已知内参、已去畸变的静态多视图照片，输出相机位姿、稀疏点云、误差报告和 COLMAP 文本模型。
-目标是理解几何与系统组织，并形成实习项目证据。2026-10-16核心填空及边界修复已完成，全套163项测试通过；
-已知对应的8相机无噪声/0.05px/0.2px案例全部通过且BA收敛。
-Middlebury TempleRing真实照片子集也已通过SIFT完整流程：8/8注册、1283点，
-BA前平均误差0.263px；BA后0.174px，但当前预算下尚未数值收敛。
-2026-10-17用户完成自适应RANSAC，31项练习验收通过；8图与47图均全部注册。
-47图最新运行6570点、mean误差0.398px，总耗时约119秒；初始化剪枝前后完整模型一致，见 [剪枝验收分析](reports/2026-10-17-initialization-pruning-analysis.md)。此前较慢运行保留在 [自适应RANSAC日志分析](reports/2026-10-17-adaptive-ransac-analysis.md)。
-数据与命令见 [真实照片快速开始](docs/09-Middlebury数据集快速开始.md)。
-见 [含噪初始化修复与复现](reports/2026-10-16-含噪初始化修复.md)。
+Python 实现几何估计与可微渲染数学，React + Three.js 提供交互式结果检查，CUDA/gsplat 支持训练后的高斯实时渲染。数据导入、参数配置、任务进度、质量诊断和模型导出在同一个浏览器界面中完成。
 
-本项目作为求职副线，配合正在进行的 DUSt3R/VGGT/NeRF/3DGS 学习。先做可验证的单场景闭环；预计 **40–55 小时有效开发与调试**，这是预算，不是完成承诺。
+![TempleRing 的稀疏点云与 47 台相机](docs/assets/sfm-workbench.png)
 
-## 本地三维可视化工作台
+*真实 TempleRing 重建：47/47 台相机注册，6,570 个三维点。照片、相机、点轨迹与重投影误差可联动检查。*
+
+## 功能概览
+
+| 模块 | 已实现功能 |
+| --- | --- |
+| 增量 SfM | SIFT 匹配、自适应 F-RANSAC、E 分解与两视图初始化、冲突轨迹处理、PnP 注册、多视图补点、可选 Bundle Adjustment |
+| 初始化优化 | 按候选匹配数排序，以有效点数上界剪枝，保留平局候选的视差比较；输出候选与剪枝诊断 |
+| NeRF | 位置编码、带视角分支的 MLP、射线采样、体渲染、训练/验证划分、检查点与新视角渲染；支持直接使用已知位姿照片 |
+| 3DGS | 各向异性协方差、投影、Alpha 合成、0–3 阶实球谐颜色、简化增密与剪枝；PyTorch 参考实现与 gsplat CUDA 后端 |
+| 三维检查 | 点云与相机视锥、RGB/误差/轨迹长度着色、观测叠加、阶段快照、平滑对齐相机并保持自由操作 |
+| 实时与任务管理 | 独立计算进程、SSE 进度、取消与重连、历史结果、失效索引清理；3DGS 常驻 GPU + WebSocket 图像流 |
+| 数据与导出 | 标定照片清单、Middlebury 数据准备、JSON/PLY/COLMAP TXT、训练权重与高斯参数归档 |
+
+## 三条处理路径
+
+![SfM、NeRF 与 3DGS 的输入关系](docs/assets/pipeline.svg)
+
+NeRF 需要照片、内参和位姿，**无需先构建点云**；3DGS 则需要点云初始化。仅有照片和内参时，先运行 SfM 估计位姿。带官方位姿的数据与本项目估计的位姿在输入和实验记录中分别标明。
+
+## 结果与性能
+
+以下是本项目在 Middlebury 数据上的场景实验，非跨数据集基准排名。完整口径与记录见 [实验结果](docs/evaluation.md)。
+
+| 项目 | 实测结果 | 条件 |
+| --- | --- | --- |
+| TempleRing SfM | **47/47 相机，6,570 点，平均误差 0.398 px** | 640×480 输入，最终全局 BA 关闭 |
+| 两视图初始化优化 | **31.761 s → 1.097 s，约 29×** | 同一 47 图配置；历史记录核对新旧完整模型一致，单次对照 |
+| NeRF 新视角 | **24.17 dB PSNR** | 47 图，36 训练 / 11 验证，160×120，6,000 步 |
+| 3DGS 新视角 | **31.83 dB PSNR** | TempleRing，36 / 11 视图，160×120，5,000 步，6,726 高斯 |
+| 3DGS 实时链路 | **91.13 帧/秒的新图像提交** | RTX 4060 Laptop，6,570 高斯，1280×720，headless Edge，测量 60 s |
+
+实时数字统计浏览器 RAF 中提交的新渲染图像，包含 CUDA 渲染、读回、JPEG 传输与解码，未测量显示器刷新率。高斯容量允许设置到 500 万；该上限不代表百万规模训练或实时性能已验证。
+
+| 原始验证视图 | 3DGS 渲染 |
+| :---: | :---: |
+| ![TempleRing 验证相机 4 原图](docs/assets/temple-reference.png) | ![TempleRing 3DGS 5000 步结果](docs/assets/temple-3dgs.png) |
+
+*同一验证相机、160×120；表中 PSNR 使用全部 11 个验证视角的平均 MSE 计算，非此单图分数。低分辨率结果仍有纹理细节限制。*
+
+<details>
+<summary>查看 NeRF 与实时渲染界面</summary>
+
+![NeRF 原图、低学习率对照与当前结果](docs/assets/nerf-comparison.png)
+
+*NeRF 验证视角示例：原图 / 低学习率对照 / 轮廓恢复后的模型。示例单视角分数与全部视角平均分数不同。*
+
+![3DGS 自由视角实时渲染工作区](docs/assets/gs-live-workbench.png)
+
+*真实训练权重的自由视角渲染，支持旋转、平移、缩放及已有相机对齐。*
+
+</details>
+
+## 快速开始
+
+建议使用 **Python 3.12**。基础 SfM 与工作台可在 CPU 运行；GPU 渲染环境另见 [安装与使用](docs/usage.md#gpu-环境)。以下命令均在项目根目录执行。
 
 ```powershell
+python -m venv .venv
+.\.venv\Scripts\python.exe -m pip install -e ".[dev,ui,ui-test]"
+.\.venv\Scripts\python.exe scripts/prepare_middlebury.py
 .\.venv\Scripts\python.exe -m minicolmap ui
 ```
 
-浏览器打开 `http://127.0.0.1:8765`，可导入照片和内参、设置参数、一键重建，
-并拖拽检查真实点云、相机位姿、观测轨迹及阶段快照。前端资源已构建在项目中，日常使用不需要Node。
-在新环境中先安装 `python -m pip install -e ".[ui]"`；仅使用算法CLI时无需安装UI依赖。
-界面只调用原有重建代码，显示操作不改变估计结果。操作、状态含义与开发说明见
-[可视化工作台指南](docs/10-可视化工作台.md)。
+浏览器打开 `http://127.0.0.1:8765`。选择 `middlebury_temple_ring`（连续 8 图），点击开始重建；完整 47 图清单为 `dataset_all.json`。数据准备脚本会下载公开照片，已有目录非空时拒绝覆盖，无需重复执行。
 
-2026-10-17区分NeRF/3DGS输入后，工程及已完成练习回归通过363项Python测试、19项前端测试；新算法79项仍为待填写TODO，单独验收。工作台已完成本机Edge原SfM流程与新训练接口验证。
-真实界面重建仍得到8/8相机、1283点；截图与复现说明见
-[工作台验收记录](reports/2026-10-16-workbench/README.md)。
+前端生产资源随 Python 包提供，日常使用无需 Node 或在线 CDN。原始数据与训练权重不随仓库分发，结果可通过上述步骤重新生成。
 
-## 先读什么
-
-1. [开发文档](docs/01-开发文档.md)：范围、架构、接口与数学约定。
-2. [里程碑与开发步骤](docs/02-里程碑与开发步骤.md)：按顺序填 TODO、运行测试、记录成果。
-3. [两视图几何实现指南](docs/03-两视图几何实现指南.md)：G1–G8 的推导与调试方法。
-4. [增量建图与 BA](docs/04-增量建图与BA.md)：T1、M1–M3、B1 的数据管理与优化。
-5. [数据与评估](docs/05-数据与评估.md)：采集要求、COLMAP 对比、导出与简历表述。
-6. [开发看板](docs/06-开发看板.md)：勾选自己的进度，填入测试和实验事实。
-7. [配置参数参考](docs/08-配置参数参考.md)：mapper的config结构、字段单位与各阶段门槛。
-8. [Middlebury真实照片快速开始](docs/09-Middlebury数据集快速开始.md)：已下载的数据、运行命令与实测结果。
-9. [可视化工作台](docs/10-可视化工作台.md)：浏览器界面、数据导入、参数、实时重建与三维检查。
-10. [自适应RANSAC与流水线计时](docs/11-自适应RANSAC与流水线计时.md)：下一步优化的31项练习验收、接口约定和阶段计时对照。
-11. [初始化上界剪枝练习](docs/12-初始化上界剪枝练习.md)：25项独立测试、安全剪枝证明、可选排序与8/47图验收方法。
-12. [NeRF与3DGS开发指南](docs/13-NeRF与3DGS开发指南.md)：10个算法填空、113项公开验收、真实照片训练与前端入口。
-13. [新视图渲染数学与调试](docs/14-新视图渲染数学与调试.md)：射线、体渲染、协方差投影、splatting的公式及排错。
-14. [GPU环境与训练启动](docs/15-GPU环境与训练启动.md)：CUDA PyTorch安装、自检、GPU配置文件和8GB显存起步。
-15. [3DGS球谐与实时渲染](docs/16-3DGS球谐与实时渲染.md)：必修S6、SH初始化/梯度、gsplat适配及最终实时验收目标。
-16. [Dino数据准备与输入选择](docs/17-Dino数据准备与输入选择.md)：363图清单、SfM子集、带官方位姿的NeRF直接训练入口。
-
-## 下一阶段：NeRF / 3DGS
-
-进一步的SfM性能优化暂存待办。新的学习框架位于 `src/minicolmap/rendering/algorithms.py`，
-N1–N4已由你实现并通过40项验收及6项CUDA检查；S1–S6也已完成并通过全部73项公开验收。CUDA reference真实训练已通过，S1的透明度设备遗漏已修复，见[设备修复报告](reports/2026-10-18-3dgs-device-fix/README.md)。
-3DGS支持3阶球谐与训练后的自由视角GPU渲染；允许接入成熟CUDA后端。gsplat1.5.3已用项目内CUDA12.8工具链编译，通过真实CUDA前向/反向、reference数值对照及普通工作台训练。打开完成的3DGS历史，在“3DGS自由视角”点击“开启实时渲染”，可旋转、平移、缩放并对齐已有相机；模型在独立进程中常驻GPU，关闭会话释放资源。两轮3000步训练的公平分辨率比较、清晰度瓶颈及实时验收见[最新分析与验收](reports/2026-10-18-3dgs-resolution-live/README.md)。此前编译细节见[兼容修复报告](reports/2026-10-18-gsplat-compat-quality/README.md)。NeRF进一步细化与SfM提速继续暂存。
+命令行也可独立使用：
 
 ```powershell
-# 原有SfM不需要这个可选依赖；本机已配置CUDA版PyTorch
-.\.venv\Scripts\python.exe -m pip install -e ".[render,dev,ui,ui-test]"
-# NeRF和3DGS填空均已完成，运行公开算法验收
-.\.venv\Scripts\python.exe -m pytest exercises/novel_view -q
+.\.venv\Scripts\python.exe -m minicolmap run --dataset data/middlebury_temple_ring/dataset.json --output outputs/temple_demo --config configs/temple_ring_no_ba.json
+.\.venv\Scripts\python.exe -m minicolmap inspect outputs/temple_demo/model.json
 ```
 
-完成相应填空后，在工作台先选方法：NeRF可直接选择带K/R/t的照片集（无需点云），3DGS需先构建或加载点云模型；也可复用已有相机结果。设置参数、训练，
-查看真实渲染/原图和验证PSNR；支持已有相机与自由视角渲染。只有照片、缺位姿时先导入/估计位姿；缺照片或未完成填空会明确报错，
-不会把源点云冒充训练结果。先按[开发指南](docs/13-NeRF与3DGS开发指南.md)运行两步smoke，再增加预算。
+每次运行使用新的输出目录。NeRF/3DGS 训练、GPU 安装及已有结果导入见 [使用指南](docs/usage.md)。
 
-GPU训练可在工作台选择CUDA，或导入`configs/nerf_gpu.json` / `configs/3dgs_gpu.json`。
-本机RTX4060已验证PyTorch2.7.1+cu128；复现安装与实际GPU自检见[GPU指南](docs/15-GPU环境与训练启动.md)。
+## 架构与核心实现
 
-NeRF最新验收：完整回归408项通过；47图验证PSNR从1000步17.75dB提高到3000步18.66dB，仍有明显模糊。
-实测图像、基线对照及下一步实验见[NeRF验收报告](reports/2026-10-17-nerf-implementation/README.md)。
-较新的8×256网络出现黑图，其数值饱和与泛化问题见[深层NeRF诊断](reports/2026-10-17-nerf-black-collapse/README.md)；`configs/nerf_deep_diagnostic.json`用于诊断起步，尚未恢复旧网络画质。
-随后已完成轮廓恢复：当前47图TempleRing使用 `configs/nerf_temple_quality.json`，全部11个验证视角在160×120下24.17dB；数学/工程回归419项、前端20项通过。直接打开工作台历史 `ui_nerf_20261017_231626_22a05a` 查看，见[完整恢复报告与图片](reports/2026-10-17-nerf-quality-recovery/README.md)。纹理细节仍有模糊。
+| 层次 | 主要代码 | 职责 |
+| --- | --- | --- |
+| 多视图几何 | [geometry.py](src/minicolmap/geometry.py)、[tracks.py](src/minicolmap/tracks.py)、[mapper.py](src/minicolmap/mapper.py) | F/E、三角化、轨迹、初始化及增量地图管理 |
+| 非线性优化 | [ba.py](src/minicolmap/ba.py)、[optimization.py](src/minicolmap/optimization.py) | 重投影残差、两视图精化、BA 与候选接受检查 |
+| 新视图合成 | [algorithms.py](src/minicolmap/rendering/algorithms.py)、[pipeline.py](src/minicolmap/rendering/pipeline.py) | NeRF / 3DGS 数学、训练、验证与权重保存 |
+| 任务服务 | [ui/](src/minicolmap/ui) | FastAPI、子进程、SSE、场景快照、WebSocket 实时会话 |
+| 交互界面 | [web/src/](web/src) | React、TypeScript、Three.js 与 OrbitControls |
 
-## 环境与第一次运行
+核心几何、轨迹管理、渲染数学与训练流程可直接审阅。SIFT 和 PnP 使用 OpenCV，非线性求解使用 SciPy，自动微分使用 PyTorch，CUDA 高斯光栅使用 gsplat；库适配与数学实现的边界见 [架构说明](docs/architecture.md)。
 
-VS Code 的 einx 补全补丁位于 [typings](typings/README.md)，使用项目级 partial stubs。
-打开项目后若 `einx.dot` 尚未出现在补全中，执行 `Python: Restart Language Server`。
-补丁不修改安装库；Pyright已验证dot/sum签名、直接导入及backend/numpy子模块解析。
-
-在本目录打开 PowerShell，推荐独立环境：
+## 测试与复现
 
 ```powershell
-Set-Location -LiteralPath 'D:\yy_folder\miniColmap'
-python -m venv .venv
-.\.venv\Scripts\python.exe -m pip install -e ".[dev]"
-.\.venv\Scripts\python.exe -m minicolmap doctor
-$pytestTemp = Join-Path $env:TEMP ("mini-colmap-" + [guid]::NewGuid().ToString("N"))
-.\.venv\Scripts\python.exe -m pytest tests/support -q -p no:cacheprovider --basetemp $pytestTemp
-.\.venv\Scripts\python.exe -m minicolmap synthetic --output data/synthetic.npz --seed 0
+# exercises/ 保留专项算法回归测试；实现已完成
+.\.venv\Scripts\python.exe -m pytest tests exercises -q
+
+# 前端开发与验证需要 Node.js
+cd web
+npm ci
+npm test
+npm run build
 ```
 
-也可运行 `& .\scripts\setup.ps1`；如 PowerShell 阻止脚本执行，使用上面的命令即可。
-无需激活环境，也不修改已有 SIFT/模型环境。核心 NumPy 测试可先开发；完整环境包括 OpenCV、SciPy、pytest。
-`doctor` 检查依赖导入，`support` 检查已完成工程工具；两者通过不代表核心算法完成。
+测试覆盖几何退化、含噪对应、初始化剪枝、地图一致性、可微渲染、CUDA/reference 对照、任务接口与视角转换。浏览器验收和 GPU 自检需准备相应数据、结果及设备，见 [验证方法](docs/evaluation.md#验证方法)。
 
-开始 G1–G8 后运行：
+## 文档
 
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests/core/test_geometry.py -q
-```
+- [使用指南](docs/usage.md)：安装、数据准备、工作台、CLI、GPU 与常见问题。
+- [架构说明](docs/architecture.md)：算法流程、模块职责、数学约定、实时链路与实现边界。
+- [参数与数据格式](docs/configuration.md)：完整配置、输入清单、模型与训练产物。
+- [实验结果](docs/evaluation.md)：可核对的指标、性能条件与复现入口。
 
-初始出现 `NotImplementedError: TODO G…` 是预期。不要删除失败测试，也不要将 TODO 标成 skip/xfail。
-按开发步骤中的 `-k` 分组逐项完成。验证记录见 [框架验证记录](docs/07-框架验证记录.md)，与个人开发进度分开。
-
-## 最终真实图像入口
-
-```powershell
-# 将 example 的结构复制到 data/my_scene/dataset.json，填写你的真实数据与内参
-.\.venv\Scripts\python.exe -m minicolmap run --dataset data/my_scene/dataset.json --output outputs/run01 --config configs/default.json
-.\.venv\Scripts\python.exe -m minicolmap inspect outputs/run01/model.json
-```
-
-此命令在核心完成之前会明确停在对应 TODO。`--output` 必须是新目录，避免与旧结果混合。
-合成 `*.npz` 是已知对应的几何测试夹具，不能直接当成真实图片 `run` 输入。
-
-成功后包含 `model.json`、`summary.json`、`points.ply`、`sparse/0/cameras.txt`、
-`images.txt`、`points3D.txt`、特征/匹配诊断与 `run_status.json`。
-NeRF/3DGS 使用独立的可选训练入口；算法填空完成后可直接复用这些位姿与原始去畸变照片。
-
-## 哪些你写，哪些已经准备好
-
-| 你实现并能够解释 | 已提供的工程或库能力 |
-|---|---|
-| 投影、Hartley 归一化、八点 F、Sampson、F-RANSAC | SIFT 提取、双向 ratio 匹配、匹配图 |
-| E 约束、四解选位姿、DLT 三角化 | OpenCV PnP-RANSAC 与位姿细化 |
-| 冲突 track、初始地图、新图注册、新点过滤 | 数据结构、JSON/PLY/COLMAP TXT、CLI |
-| BA 重投影残差与地图更新理解 | SciPy 求解器包装、合成夹具、工程测试 |
-
-原始SfM共 **13 个学习 TODO：G1–G8、T1、M1–M3、B1**，均已完成。新视图阶段另有 **9个TODO：N1–N4、S1–S5**，其中N1–N4已完成，S1–S5待实现。不手写 SIFT 尺度空间、P3P 求根或大型稀疏求解器。
-不要把调用库的能力描述成自己的算法实现，也不要把生成框架描述成已经完成重建。
+当前重点是小型静态场景的稀疏重建与新视图合成。尚不支持未知内参自动标定、稠密 MVS、网格重建、联合位姿训练或完整 COLMAP 模型导入；NeRF 与 3DGS 的画质和大规模性能仍有优化空间。

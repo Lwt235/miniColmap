@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "mini-colmap-learning"
 version = "0.1.0"
-description = "An incremental sparse SfM learning project with explicit student implementation tasks"
+description = "Incremental SfM, NeRF and 3D Gaussian Splatting with a local 3D workbench"
 requires-python = ">=3.10"
 dependencies = ["numpy>=1.26,<3", "opencv-python-headless>=4.8,<5", "scipy>=1.11,<2", "einx>=0.4.3,<0.5"]
 

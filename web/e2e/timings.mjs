@@ -1,4 +1,4 @@
-/** Read-only check against the real timing baseline documented in docs/11. */
+/** Read-only check against an existing timing run; see docs/evaluation.md. */
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
 import { mkdir, writeFile } from 'node:fs/promises';
@@ -38,7 +38,7 @@ try {
   const run = runs.find(
     (r) => r.name === (process.env.TIMING_RUN_NAME || 'timing_baseline_20261016_01'),
   );
-  assert(run, 'Run the timing baseline described in docs/11 first');
+  assert(run, 'Set TIMING_RUN_NAME to an existing completed SfM run; see docs/evaluation.md');
   const { timings, summary } = await get(`/api/runs/${run.id}/reports`);
   assert.equal(timings.status, 'completed');
   assert.equal(timings.total_seconds, summary.elapsed_seconds);

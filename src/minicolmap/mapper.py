@@ -1,9 +1,9 @@
-"""Learner-owned map management; read docs/04-增量建图与BA.md before M1-M3.
+"""Incremental map management; algorithm flow is documented in docs/architecture.md.
 
 All config arguments take the FULL PipelineConfig returned by load_config().
 Read config['mapping'] for local thresholds, config['seed'] for PnP, and
 config['geometry']['min_inliers'] for M1's minimum initial points.
-Do not pass only config['mapping']. Full schema: docs/08-配置参数参考.md.
+Do not pass only config['mapping']. Full schema: docs/configuration.md.
 """
 from dataclasses import dataclass
 from typing import TypeAlias, TypedDict, NotRequired

@@ -58,11 +58,11 @@ def rasterize_gsplat(means, covariances, colors, opacities, K, R, t,
         # is None. Detect that before the wrapper raises an opaque AttributeError.
         from gsplat.cuda._backend import _C
     except ImportError as exc:
-        raise RuntimeError('未安装 gsplat CUDA 后端；见 docs/16-3DGS球谐与实时渲染.md') from exc
+        raise RuntimeError('未安装 gsplat CUDA 后端；见 docs/usage.md') from exc
     if _C is None:
         raise RuntimeError('gsplat Python 包已安装，但 CUDA 光栅扩展未加载；请配置 CUDA Toolkit/nvcc '
                            '与 MSVC C++ 编译环境后重启工作台。现在可选择 reference + CUDA 训练；'
-                           '见 docs/16-3DGS球谐与实时渲染.md')
+                           '见 docs/usage.md')
     arguments = gsplat_arguments(means, covariances, colors, opacities, K, R, t,
                                 width, height, background)
     rgb, _, _ = rasterization(**arguments)

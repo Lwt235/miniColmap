@@ -7,7 +7,7 @@ from pathlib import Path
 
 
 def main(argv=None):
-    parser = argparse.ArgumentParser(description='Mini-COLMAP learning scaffold')
+    parser = argparse.ArgumentParser(description='Mini-COLMAP: incremental SfM and neural view synthesis')
     sub = parser.add_subparsers(dest='command', required=True)
     sub.add_parser('doctor', help='Check actual dependency imports')
     ui = sub.add_parser('ui', help='Open the local reconstruction and 3D visualization workbench')
@@ -21,7 +21,7 @@ def main(argv=None):
     synthetic.add_argument('--cameras', type=int, default=4)
     synthetic.add_argument('--noise-px', type=float, default=0.0)
     synthetic.add_argument('--outlier-ratio', type=float, default=0.0)
-    run = sub.add_parser('run', help='Run real-image SfM after completing core TODOs')
+    run = sub.add_parser('run', help='Run incremental SfM from calibrated photos')
     run.add_argument('--dataset', type=Path, required=True)
     run.add_argument('--output', type=Path, required=True)
     run.add_argument('--config', type=Path)
@@ -36,7 +36,7 @@ def main(argv=None):
     train.add_argument('--output', type=Path, required=True)
     train.add_argument('--method', choices=('nerf', '3dgs'))
     train.add_argument('--config', type=Path)
-    render = sub.add_parser('render', help='Render a saved learner checkpoint from an existing camera')
+    render = sub.add_parser('render', help='Render a saved training checkpoint from an existing camera')
     render.add_argument('--run', type=Path, required=True)
     render.add_argument('--image-id', type=int, required=True)
     args = parser.parse_args(argv)
@@ -56,7 +56,7 @@ def main(argv=None):
                 except ImportError:
                     missing.append(name)
                     print(f'{name}: MISSING')
-            print('Core TODOs are intentionally unfinished; dependency checks do not certify SfM.')
+            print('Dependency checks do not certify reconstruction or rendering quality; see docs/evaluation.md.')
             return 1 if missing else 0
         if args.command == 'synthetic':
             from .synthetic import generate_scene, save_scene
@@ -100,7 +100,7 @@ def main(argv=None):
         return 0
     except NotImplementedError as exc:
         print(f'Unfinished learner implementation: {exc}', file=sys.stderr)
-        print('See docs/02-里程碑与开发步骤.md or docs/13-NeRF与3DGS开发指南.md; fill that TODO before retrying.', file=sys.stderr)
+        print('See docs/architecture.md and docs/evaluation.md for algorithm modules and validation.', file=sys.stderr)
         return 2
     except (ValueError, RuntimeError, OSError, KeyError, ImportError) as exc:
         print(f'Error: {exc}', file=sys.stderr)

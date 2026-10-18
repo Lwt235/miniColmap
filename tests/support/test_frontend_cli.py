@@ -170,7 +170,7 @@ def test_cli_doctor_checks_installed_dependencies(capsys):
     for dependency in ("numpy", "cv2", "scipy", "pytest"):
         assert f"{dependency}:" in output
     assert "MISSING" not in output
-    assert "Core TODOs are intentionally unfinished" in output
+    assert "Dependency checks do not certify reconstruction or rendering quality" in output
 
 
 def test_cli_synthetic_generates_observation_fixture_without_claiming_sfm(tmp_path, capsys):

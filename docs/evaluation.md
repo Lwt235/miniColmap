@@ -1,0 +1,118 @@
+# 实验结果与验证
+
+本页汇总已完成的场景实验，区分重建质量、验证图像质量与实时链路吞吐。紧凑数据、完整运行配置及来源指纹保存在 [benchmarks.json](assets/benchmarks.json)；历史原始 JSON、CSV 和实验脚本保留在 `reports/`，不再作为分散的阅读入口。此轮文档整理未重新训练或重建。
+
+## SfM
+
+### TempleRing
+
+47 张 640×480 照片使用已知 K，经本项目 SIFT、匹配、几何验证与增量建图得到：
+
+| 指标 | 结果 |
+| --- | ---: |
+| 注册相机 | 47 / 47 |
+| 三维点 | 6,570 |
+| 平均重投影误差 | 0.398156 px |
+| 正深度比例 | 1.0 |
+| 最终全局 BA | 关闭 |
+
+最近保存的同类运行 `ui_20261018_153919_803ccb` 用时 106.835 s；它与下述历史剪枝对照不是同一次计时。初始化本身仍执行两视图精化，最终 BA 关闭不表示完全没有非线性优化。
+
+### 初始化优化对照
+
+| 项目 | 优化前 | 优化后 |
+| --- | ---: | ---: |
+| 初始化候选总数 | 218 | 218 |
+| 两视图精化调用 | 217 | 2 |
+| 上界剪枝数 | 0 | 216 |
+| 初始化阶段 | 31.761 s | 1.097 s |
+| 全流程 | 168.519 s | 119.187 s |
+
+记录来自相同 47 图配置的单次运行对照，初始化约加速 29 倍、全流程耗时下降约 29.3%。当时核对 `pairs.json`、初始快照和最终 `model.json` 完全一致。当前保留历史审计结果，原始部分输出已在后续实验中清理；该数字不表示本轮重新运行了旧实现。
+
+匹配阶段独立发生在初始化之前，其时间波动不能算作剪枝的收益。穷举匹配仍是大场景的主要成本；尚未做跨场景和多次重复的统计性能评测。
+
+### Dino 边界案例
+
+当前保存的完整 363 图输入运行 `ui_20261018_163545_713ebb` 注册 **102/363** 台相机、778 点，平均重投影误差约 1.139 px。它是部分重建，未达到全图注册。后续 Dino 3DGS 只使用这些已注册视图，不能表述为“完成了 363 视图训练”。
+
+## 新视图合成
+
+| 实验 | 输入 / 划分 | 步数与评价尺寸 | 全部验证视角 PSNR |
+| --- | --- | --- | ---: |
+| TempleRing NeRF | 47 图，36 训练 / 11 验证 | 6,000 步，160×120 | 24.17 dB |
+| TempleRing 3DGS | 47 图，36 / 11，最终 6,726 高斯 | 5,000 步，160×120 | 31.83 dB |
+| Dino 3DGS | SfM 已注册的 102 图，77 / 25，最终 2,623 高斯 | 30,000 步，80×60 | 29.00 dB |
+
+TempleRing NeRF 配置为 `configs/nerf_temple_quality.json`，核心参数为 8 层主干、256 隐藏维数、黑背景、跨图射线采样及分层采样。TempleRing 3DGS 使用 gsplat/CUDA、学习率 0.001、SH3、增密间隔 100 和 100,000 容量预算；实际数量为 6,726，预算不是最终点数。Dino 使用不同场景、图像尺寸与有效视图数，不能直接与 TempleRing 分数排名。
+
+PSNR 口径为 `−10·log10(各等尺寸验证视图的平均 MSE)`，不是逐视图 PSNR 的算术平均，也不是训练 loss。中途预览可能只对应一张验证图，以指标的 `psnr_scope` 为准。留出的是外观监督，位姿由全图 SfM 估计；不将它当作严格端到端的未见场景评测。
+
+NeRF 已恢复主体轮廓，细纹理仍偏软；3DGS 的 31.83 dB 是低分辨率特定场景实验，不能推导出原始分辨率或其他场景达到同样画质。比较模型时固定验证图像、评价分辨率、背景和采样/渲染口径。
+
+## 3DGS 实时链路
+
+保存的性能记录使用 RTX 4060 Laptop、6,570 个高斯、SH3、1280×720、JPEG quality=85。预热 10 s，测量 60 s；Python 客户端与 Edge 分别执行。
+
+| 测量 | 数值 |
+| --- | ---: |
+| Edge 新渲染图像 RAF 提交速率 | 91.13 帧/秒 |
+| Edge 请求到图像提交延迟 P95 | 18.30 ms |
+| Edge 测试期间 GPU 渲染均值 | 4.53 ms |
+| Python 客户端接收并 CPU 解码吞吐 | 78.09 帧/秒 |
+
+浏览器记录来自 headless Edge 生产组件中的新图像提交，包含请求、GPU、读回、编码、传输、解码与等待 RAF；不累计空转帧，也不是物理显示器测量。Python 客户端额外使用 OpenCV CPU 解码，因此是另一种吞吐口径。
+
+该记录对应旧的 6,570 高斯模型，与前表的 6,726 高斯画质实验不同。配置现已放宽至 500 万容量，尚无百万高斯模型的同口径训练/性能记录。
+
+## 验证方法
+
+### 算法与接口
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests exercises -q
+.\.venv\Scripts\python.exe scripts/check_core_integration.py
+.\.venv\Scripts\python.exe scripts/check_core_integration.py --noise-px 0.2
+```
+
+`tests/core` 验证几何、轨迹、地图与 BA；`tests/support` 验证数据、配置、计时、训练和后端；`tests/ui` 验证接口、取消、历史刷新与实时会话。`exercises/` 中保留已完成算法的专项回归，目录名不表示仍需补全。
+
+GPU 测试依赖实际 CUDA 与可用扩展；跨机器比较时同时记录通过与跳过项，不将无设备时的跳过当成 CUDA 验证。测试通过说明数值和工程约束满足，实际画质仍需验证图像与指标。
+
+### GPU 自检
+
+```powershell
+.\.venv\Scripts\python.exe scripts/check_render_gpu.py --output .cache/render-gpu-check.json
+.\.venv\Scripts\python.exe scripts/check_gsplat_backend.py
+```
+
+### 前端与浏览器
+
+```powershell
+cd web
+npm test
+npm run build
+node e2e/gaussian-sh-config.mjs
+```
+
+最后一项连接正在运行的本机工作台，在空闲时检查 SH、500 万数量边界、后端、导出与配置校验，不启动训练。配置表单测试关闭 WebGL；三维交互使用独立脚本。
+
+三维相机检查可用 `npm run test:e2e:camera`；实时高斯检查先准备完成的 3DGS 历史，并在 PowerShell 指定实际任务 ID：
+
+```powershell
+$env:GSPLAT_RUN_ID = '<当前已完成的3DGS任务ID>'
+npm run test:e2e:gaussian-live
+node e2e/gaussian-live-perf.mjs
+```
+
+Python 链路计时在项目根目录运行，关闭其他实时会话：
+
+```powershell
+.\.venv\Scripts\python.exe scripts/check_gsplat_live.py --run-id <实际任务ID> --warmup 10 --duration 60 --output .cache/live-benchmark.json
+```
+
+`node e2e/timings.mjs` 可用 `TIMING_RUN_NAME` 指定当前 SfM 历史名称，检查阶段计时面板。部分早期浏览器脚本默认引用历史结果；先准备其前置数据或使用支持的环境变量，不保证任意新环境可直接复用旧 ID。完整 `npm run test:e2e` 会创建新的测试重建和导入副本，运行前应无活动任务。
+
+## 展示素材
+
+`docs/assets/` 的点云界面、NeRF 对照与实时工作区均来自真实运行截图。`temple-reference.png` 与 `temple-3dgs.png` 来自同一验证相机的实际原图/渲染图。`pipeline.svg` 仅表示数据依赖，不是算法输出。每份素材的原始文件与 SHA256 存在 `benchmarks.json` 中，原始实验产物未因文档精简被改写。

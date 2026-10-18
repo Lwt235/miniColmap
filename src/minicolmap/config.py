@@ -45,7 +45,7 @@ class PipelineConfig(TypedDict):
     """Full, merged load_config() result passed to every mapper function.
 
     This describes the complete output, not a partial JSON override.
-    Defaults, units and stage rules: docs/08-配置参数参考.md.
+    Defaults, units and stage rules: docs/configuration.md.
     """
 
     seed: int

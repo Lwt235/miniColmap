@@ -13,7 +13,7 @@ if (-not $taskCudaHome -or -not (Test-Path -LiteralPath (Join-Path $taskCudaHome
     $taskCuda = Get-ChildItem -LiteralPath $taskCudaRoot -Directory |
         Where-Object { $_.Name -match '^v\d+\.\d+$' -and (Test-Path -LiteralPath (Join-Path $_.FullName 'bin/nvcc.exe')) } |
         Sort-Object { [version]$_.Name.Substring(1) } -Descending | Select-Object -First 1
-    if (-not $taskCuda) { throw 'CUDA Toolkit/nvcc.exe not found; see docs/16-3DGS球谐与实时渲染.md' }
+    if (-not $taskCuda) { throw 'CUDA Toolkit/nvcc.exe not found; see docs/usage.md' }
     $taskCudaHome = $taskCuda.FullName
 }
 

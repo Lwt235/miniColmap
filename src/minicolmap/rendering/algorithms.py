@@ -403,7 +403,7 @@ def evaluate_sh(sh_coeffs: Tensor, directions: Tensor, degree: int = 3) -> Tenso
     from camera center to Gaussian center (means-C), NOT their negatives or
     camera-local directions. Normalize nonzero directions inside this function.
     degree is a non-bool integer 0..3 with (degree+1)**2 <= B. Use the real-SH
-    ordering/signs specified in docs/16-3DGS球谐与实时渲染.md (Graphdeco order).
+    ordering/signs specified in docs/architecture.md (Graphdeco order).
     Return (G,3) = clamp_min(0.5 + sum(coeff*basis), 0). Do not sigmoid or
     clamp the upper bound: linear radiance may exceed 1; PNG export clips it.
     Only the first (degree+1)**2 coefficients participate. Preserve gradients
