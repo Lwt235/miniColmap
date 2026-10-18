@@ -497,7 +497,9 @@ def gaussian_covariance(log_scales: Tensor, quaternions: Tensor) -> Tensor:
 
     scales = torch.exp(log_scales)
     covariance = (Q @ torch.diag_embed(scales.square()) @ Q.transpose(-1, -2))
-    return covariance
+    # The analytic result is symmetric; independent float32 dot products can
+    # round differently. Preserve that invariant without detaching gradients.
+    return 0.5 * covariance + 0.5 * covariance.transpose(-1, -2)
 
 
 def project_gaussians(means: Tensor, covariances: Tensor, K: Tensor, R: Tensor,
@@ -567,6 +569,9 @@ def project_gaussians(means: Tensor, covariances: Tensor, K: Tensor, R: Tensor,
     ], dim=-2)
     I2 = torch.eye(2, dtype=means.dtype, device=means.device)
     cov2d_raw = (J @ camera_cov @ J.transpose(-1, -2) + min_variance * I2)
+    # Projection amplifies a few ulps into >1e-6 pixel^2 for trained ellipsoids.
+    # Restore exact symmetry here instead of weakening S4's input validation.
+    cov2d_raw = 0.5 * cov2d_raw + 0.5 * cov2d_raw.transpose(-1, -2)
 
     means2d = torch.where(visible[:, None], means2d_raw, torch.zeros_like(means2d_raw))
     cov2d = torch.where(visible[:, None, None], cov2d_raw, min_variance * I2.expand(G, 2, 2))

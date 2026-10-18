@@ -5,6 +5,16 @@ import copy
 import math
 
 
+MAX_GAUSSIANS = 5_000_000
+
+
+def validate_gaussian_count(value: int) -> int:
+    """Shared configuration/checkpoint count limit; does not allocate tensors."""
+    if isinstance(value, bool) or not isinstance(value, int) or not 1 <= value <= MAX_GAUSSIANS:
+        raise ValueError(f"max_gaussians 必须是 1 至 {MAX_GAUSSIANS} 的整数")
+    return value
+
+
 DEFAULT = {
     "method": "nerf", "iterations": 1000, "learning_rate": .001,
     "image_downscale": 8, "rays_per_batch": 256, "samples_per_ray": 32,
@@ -68,7 +78,7 @@ def resolve_render_config(overrides: dict | None = None) -> dict:
     number(result['gaussian'], 'initial_opacity', 0, 1, open_low=True)
     if result['gaussian']['initial_opacity'] == 1:
         raise ValueError("initial_opacity 必须严格小于 1")
-    number(result['gaussian'], 'max_gaussians', 1, 100000, True)
+    validate_gaussian_count(result['gaussian']['max_gaussians'])
     number(result['gaussian'], 'densify_every', 0, 1000000, True)
     number(result['gaussian'], 'sh_degree', 0, 3, True)
     number(result['gaussian'], 'sh_degree_interval', 0, 1000000, True)
@@ -102,5 +112,6 @@ def capabilities() -> dict:
             pass  # Runtime ABI/build diagnostics belong to the training process.
     return {"torch_available": available, "cuda_available": None,
             "gsplat_available": gsplat_available, "gsplat_native_available": native_available,
+            "limits": {"max_gaussians": MAX_GAUSSIANS},
             "cuda_note": "CUDA 可用性在训练子进程中检查；此页不初始化 GPU",
             "methods": ['nerf', '3dgs'], "defaults": resolve_render_config()}

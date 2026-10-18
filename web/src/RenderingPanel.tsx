@@ -4,6 +4,7 @@ import { api, downloadJSON, json, number } from './api';
 import GaussianLiveViewer from './GaussianLiveViewer';
 import {
   isRenderingRun,
+  MAX_GAUSSIANS,
   parseRenderCamera,
   renderingConfigError,
   renderingSourceRequest,
@@ -24,6 +25,7 @@ type Capabilities = {
   gsplat_native_available?: boolean;
   cuda_available: boolean | null;
   cuda_note?: string;
+  limits?: { max_gaussians: number };
   methods: ('nerf' | '3dgs')[];
   defaults: RenderingConfig;
 };
@@ -592,7 +594,12 @@ export default function RenderingPanel({
                         <input
                           type="number"
                           aria-label={label}
-                          min={0}
+                          min={key === 'max_gaussians' ? 1 : 0}
+                          max={
+                            key === 'max_gaussians'
+                              ? (capabilities?.limits?.max_gaussians ?? MAX_GAUSSIANS)
+                              : undefined
+                          }
                           step={step}
                           value={config.gaussian[key]}
                           onChange={(e) =>
@@ -606,6 +613,7 @@ export default function RenderingPanel({
                     ))}
                   </div>
                   <p className="rendering-note">
+                    最大高斯数支持设置到500万，是初始化与增密的数量上限，不会自动填满。大模型使用CUDA/gsplat。
                     点数超过高斯上限时稳定子采样。首次冒烟实验推荐降采样 16 倍、最多 128
                     个高斯。增密间隔 0 表示禁用；开启前请补完增密与剪枝练习。球谐升阶间隔 0
                     表示直接启用全部阶数，1000 表示每 1000 步升一阶。 球谐颜色须完成 S6。reference

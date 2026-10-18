@@ -10,7 +10,7 @@ import pytest
 
 from minicolmap.io import save_reconstruction
 from minicolmap.models import Camera, ImageRecord, Point3D, Pose, Reconstruction
-from minicolmap.rendering.config import capabilities, resolve_render_config
+from minicolmap.rendering.config import capabilities, resolve_render_config, validate_gaussian_count
 from minicolmap.rendering.data import load_training_scene, scaled_intrinsics, split_views
 
 
@@ -60,6 +60,23 @@ def test_config_is_independent_and_capabilities_do_not_require_cuda():
     config['nerf']['levels_xyz'] = 999
     assert resolve_render_config()['nerf']['levels_xyz'] == 6
     assert capabilities()['methods'] == ['nerf', '3dgs']
+
+
+@pytest.mark.parametrize('count', [1, 100001, 1000000, 5000000])
+def test_million_gaussian_limits_match_configuration_and_live_checkpoint_validation(count):
+    settings = resolve_render_config({'method': '3dgs', 'device': 'cuda',
+        'gaussian': {'backend': 'gsplat', 'max_gaussians': count}})
+    assert settings['gaussian']['max_gaussians'] == validate_gaussian_count(count) == count
+    assert capabilities()['limits']['max_gaussians'] == 5000000
+    assert resolve_render_config()['gaussian']['max_gaussians'] == 512
+
+
+@pytest.mark.parametrize('count', [0, -1, True, 1.5, 5000001, float('inf'), float('nan')])
+def test_gaussian_count_limits_still_reject_invalid_configuration_and_checkpoint_counts(count):
+    with pytest.raises(ValueError, match='max_gaussians'):
+        validate_gaussian_count(count)
+    with pytest.raises(ValueError, match='max_gaussians'):
+        resolve_render_config({'gaussian': {'max_gaussians': count}})
 
 
 def test_view_split_uses_stable_ids_not_positions_and_preserves_holdout():

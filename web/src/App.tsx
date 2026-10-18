@@ -784,9 +784,39 @@ export default function App() {
                   <button
                     className="text-button"
                     aria-label="刷新历史运行"
+                    title="刷新并清除输出目录已删除的历史记录"
                     onClick={() => {
                       api<Run[]>('/api/runs?discover=true')
-                        .then(setRuns)
+                        .then((items) => {
+                          const removed = runs.filter(
+                            (old) => !items.some((item) => item.id === old.id),
+                          ).length;
+                          setRuns(items);
+                          if (runId && !items.some((item) => item.id === runId)) {
+                            if (items[0]) selectRun(items[0]);
+                            else {
+                              setRunId('');
+                              setRun(null);
+                              setScene(null);
+                              setSceneLoading(false);
+                              setSelection(null);
+                              setReports(null);
+                              setArtifacts([]);
+                              setLogs([]);
+                              setSnapshot('latest');
+                              setWorkspaceMode('scene');
+                              try {
+                                localStorage.removeItem('minicolmap.lastRun');
+                              } catch {
+                                /* Storage is optional. */
+                              }
+                            }
+                          }
+                          notify(
+                            removed ? `已清理 ${removed} 条失效历史记录` : '历史已刷新',
+                            false,
+                          );
+                        })
                         .catch((e) => notify(String(e)));
                     }}
                   >

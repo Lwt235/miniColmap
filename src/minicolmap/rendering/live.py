@@ -26,7 +26,7 @@ class CudaRenderer:
     def __init__(self, output):
         import torch
         from . import algorithms as learner
-        from .config import resolve_render_config
+        from .config import resolve_render_config, validate_gaussian_count
         from .gsplat_runtime import load_project_extension
         if not torch.cuda.is_available():
             raise ValueError('实时高斯渲染需要可用 CUDA GPU')
@@ -55,8 +55,7 @@ class CudaRenderer:
             raise ValueError('checkpoint 活跃球谐阶数超过已保存系数')
         expected = {'means': (count, 3), 'log_scales': (count, 3), 'quaternions': (count, 4),
                     'opacity_logits': (count,), 'sh_coeffs': (count, (self.config['gaussian']['sh_degree'] + 1) ** 2, 3)}
-        if not 0 < count <= 100000:
-            raise ValueError('实时渲染支持 1 至 100000 个高斯')
+        validate_gaussian_count(count)
         for key, shape in expected.items():
             value = state.get(key)
             if not isinstance(value, torch.Tensor) or tuple(value.shape) != shape or not torch.isfinite(value).all():

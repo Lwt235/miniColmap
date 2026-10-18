@@ -11,6 +11,7 @@ import threading
 import time
 import uuid
 from pathlib import Path
+from stat import S_ISDIR
 
 from ..config import load_config
 from ..io import load_dataset, load_reconstruction, save_reconstruction
@@ -52,6 +53,7 @@ class Store:
 
     def discover(self):
         with self.lock:
+            self._prune_missing_outputs()
             data_root = self.root / "data"
             for manifest in data_root.rglob("*.json") if data_root.exists() else []:
                 if any((parent / ".invalid-import").exists() for parent in manifest.parents if parent != data_root.parent):
@@ -62,7 +64,11 @@ class Store:
             known_outputs = {str(Path(run["output_path"]).resolve()) for run in self.runs.values()}
             outputs = self.root / "outputs"
             for output in sorted(outputs.iterdir()) if outputs.exists() else []:
-                if not output.is_dir() or str(output.resolve()) in known_outputs:
+                try:
+                    skip = str(output.resolve()) in known_outputs or not output.is_dir()
+                except OSError:
+                    continue
+                if skip:
                     continue
                 status = read_json(output / "run_status.json", {})
                 if not status and not (output / "model.json").exists():
@@ -116,6 +122,36 @@ class Store:
                 else:
                     run["images_available"] = False
                     run.pop("dataset_id", None)
+
+    def _prune_missing_outputs(self):
+        """Reconcile history under self.lock; never delete results or active jobs."""
+        registry = (self.state / "runs").resolve()
+        for run_id, run in list(self.runs.items()):
+            process = self.processes.get(run_id)
+            if run.get("status") == "running" or (process is not None and process.poll() is None):
+                continue  # A starting worker may not have created its output yet.
+            raw = run.get("output_path")
+            if not isinstance(raw, str) or not raw:
+                continue
+            try:
+                if S_ISDIR(Path(raw).stat().st_mode):
+                    continue  # Keep incomplete/failed results, even without a model.
+            except (FileNotFoundError, NotADirectoryError):
+                pass
+            except OSError:
+                continue  # Inaccessible is not evidence that the user deleted it.
+            metadata = registry / f"{run_id}.json"
+            if metadata.resolve().parent != registry:
+                continue
+            try:
+                metadata.unlink(missing_ok=True)
+            except OSError:
+                continue  # Keep it visible if the persistent index cannot be removed.
+            self.runs.pop(run_id, None)
+            self.processes.pop(run_id, None)
+            log = self.logs.pop(run_id, None)
+            if log is not None:
+                log.close()
 
     def dataset(self, dataset_id):
         if dataset_id not in self.datasets:

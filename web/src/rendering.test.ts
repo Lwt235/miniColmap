@@ -28,6 +28,24 @@ const defaults: RenderingConfig = {
 };
 
 describe('rendering input contract', () => {
+  it('accepts up to five million Gaussians and rejects invalid capacity settings', () => {
+    for (const count of [1, 100001, 1000000, 5000000]) {
+      expect(
+        renderingConfigError({
+          ...defaults,
+          gaussian: { ...defaults.gaussian, max_gaussians: count },
+        }),
+      ).toBeNull();
+    }
+    for (const count of [0, -1, 1.5, NaN, Infinity, 5000001]) {
+      expect(
+        renderingConfigError({
+          ...defaults,
+          gaussian: { ...defaults.gaussian, max_gaussians: count },
+        }),
+      ).toContain('最大高斯数');
+    }
+  });
   it('validates SH degree, schedule and the explicit CUDA backend without changing old configs', () => {
     expect(renderingConfigError(defaults)).toBeNull();
     for (const degree of [-1, 4, 1.5, NaN]) {

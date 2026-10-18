@@ -371,6 +371,27 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
         raise
 
 
+def _render_gaussian_preview(state, frame, config, torch, *, sh_degree=None, max_gaussian_pixels=4_000_000):
+    """Bound CPU reference intermediates without dropping or changing Gaussians."""
+    count = len(state['means'])
+    width, height = frame['width'], frame['height']
+    if count * width * height <= max_gaussian_pixels:
+        return _render(None, state, frame, config, torch, 'cpu', sh_degree=sh_degree)
+    edge = max(1, min(64, math.isqrt(max(1, max_gaussian_pixels // max(count, 1)))))
+    rows = []
+    for top in range(0, height, edge):
+        tiles = []
+        for left in range(0, width, edge):
+            K = np.array(frame['K'], dtype=np.float64, copy=True)
+            K[0] -= left * K[2]
+            K[1] -= top * K[2]
+            tile = {**frame, 'width': min(edge, width - left), 'height': min(edge, height - top),
+                    'K': K.tolist()}
+            tiles.append(_render(None, state, tile, config, torch, 'cpu', sh_degree=sh_degree))
+        rows.append(torch.cat(tiles, dim=1))
+    return torch.cat(rows, dim=0)
+
+
 def render_checkpoint(output, *, camera=None, image_id=None):
     """Render a saved learner checkpoint; camera extrinsics use ORIGINAL SfM units."""
     output = Path(output)
@@ -413,8 +434,12 @@ def render_checkpoint(output, *, camera=None, image_id=None):
     else:
         state = checkpoint['state']
     with torch.no_grad():
-        rgb = _render(network, state, frame, config, torch, 'cpu',
-                      sh_degree=checkpoint.get('active_sh_degree'))
+        if state is not None:
+            rgb = _render_gaussian_preview(state, frame, config, torch,
+                                           sh_degree=checkpoint.get('active_sh_degree'))
+        else:
+            rgb = _render(network, state, frame, config, torch, 'cpu',
+                          sh_degree=checkpoint.get('active_sh_degree'))
     relative = f'previews/render-{uuid.uuid4().hex[:12]}.png'
     _write_image(output / relative, rgb.cpu().numpy())
     preview = {'path': relative, 'step': checkpoint['step']}

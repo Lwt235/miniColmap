@@ -1,6 +1,8 @@
 import type { DatasetSummary, RenderingConfig, Run } from './types';
 import type { PerspectiveCamera } from 'three';
 
+export const MAX_GAUSSIANS = 5_000_000;
+
 export const isRenderingRun = (run: Run | null | undefined) =>
   run?.pipeline === 'nerf' || run?.pipeline === '3dgs';
 
@@ -46,6 +48,12 @@ export function renderingSourceRequest(
 
 /** Early feedback only; the server remains authoritative for all configuration rules. */
 export function renderingConfigError(config: RenderingConfig): string | null {
+  if (
+    !Number.isInteger(config.gaussian.max_gaussians) ||
+    config.gaussian.max_gaussians < 1 ||
+    config.gaussian.max_gaussians > MAX_GAUSSIANS
+  )
+    return `最大高斯数必须是 1 至 ${MAX_GAUSSIANS} 的整数。`;
   const shDegree = config.gaussian.sh_degree ?? 3;
   const shInterval = config.gaussian.sh_degree_interval ?? 0;
   if (!Number.isInteger(shDegree) || shDegree < 0 || shDegree > 3)
