@@ -1,0 +1,20 @@
+[
+  {
+    "scene": "dino321",
+    "image_id": 49,
+    "path": "D:\\yy_folder\\miniColmap\\reports\\3dgs-ablation-20261019\\fixed-topology\\comparison-dino321.png",
+    "scope": "First predeclared test view; actual 8-bit display exports, no enhancement"
+  },
+  {
+    "scene": "temple312",
+    "image_id": 40,
+    "path": "D:\\yy_folder\\miniColmap\\reports\\3dgs-ablation-20261019\\fixed-topology\\comparison-temple312.png",
+    "scope": "First predeclared test view; actual 8-bit display exports, no enhancement"
+  },
+  {
+    "scene": "temple47",
+    "image_id": 8,
+    "path": "D:\\yy_folder\\miniColmap\\reports\\3dgs-ablation-20261019\\fixed-topology\\comparison-temple47.png",
+    "scope": "First predeclared test view; actual 8-bit display exports, no enhancement"
+  }
+]

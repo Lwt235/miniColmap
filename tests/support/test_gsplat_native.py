@@ -41,3 +41,20 @@ def test_native_and_reference_agree_and_native_backpropagates_into_all_student_p
     for name, value in state.items():
         assert value.grad is not None and torch.isfinite(value.grad).all(), name
     assert state['opacity_logits'].grad.abs().sum() > 0
+
+
+def test_native_image_plane_gradient_is_available_for_density_control():
+    from minicolmap.rendering.gaussian_training import DensityStatistics
+    state = initialize_gaussians(torch.tensor([[.1, -.1, 2.], [-.2, .15, 2.5]], device='cuda'),
+        torch.tensor([[.8, .2, .1], [.1, .5, .7]], device='cuda'), initial_scale=.1, initial_opacity=.3)
+    frame = dict(K=[[6., 0., 4.], [0., 6., 3.], [0., 0., 1.]], R=torch.eye(3),
+                 t=[0., 0., 0.], width=9, height=7)
+    config = resolve_render_config({'method': '3dgs', 'device': 'cuda', 'background': 'black',
+                                    'gaussian': {'backend': 'gsplat', 'density_strategy': 'adaptive'}})
+    info = {}
+    rgb = _render(None, state, frame, config, torch, 'cuda', training_info=info)
+    rgb.square().mean().backward()
+    statistics = DensityStatistics(state)
+    statistics.accumulate(info)
+    assert statistics.count.sum() > 0
+    assert statistics.gradient.sum() > 0 and torch.isfinite(statistics.gradient).all()

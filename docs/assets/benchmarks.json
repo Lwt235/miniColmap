@@ -21,6 +21,16 @@
     "temple-3dgs.png": {
       "source": "outputs/ui_3dgs_20261018_154321_6fac7b/previews/step-005000.png",
       "sha256": "9733bb95c15027eb5ce678375e7c1c254b862d632486aa99a0ef0f7209adeeb3"
+    },
+    "temple312-test40-reference.png": {
+      "source": "reports/3dgs-ablation-20261019/full-resolution/runs/temple312_baseline_s0_3c0d36ed0d/previews/reference-40.png",
+      "sha256": "c4f92aa707b331bbc8ecb58801db15e3a7dcb775022f9a9a320c989372166302",
+      "scope": "Temple312 fixed test image 40; 640x480; original PNG bytes, no visual editing"
+    },
+    "temple312-test40-optimized.png": {
+      "source": "reports/3dgs-ablation-20261019/full-resolution/runs/temple312_combined_s0_d3c2627799/validation/image-40.png",
+      "sha256": "9f86df867b8d103cc0f18dcee5ed6ed590a72e3c7f1e5af29f17e84a310094b1",
+      "scope": "Temple312 fixed test image 40; 640x480; original PNG bytes, no visual editing"
     }
   },
   "experiments": {
@@ -608,6 +618,310 @@
         "model.json"
       ],
       "origin": "Repository initialization-pruning audit before documentation consolidation; recoverable in Git history"
+    },
+    "dino_sfm_repaired_cached": {
+      "source_directory": "outputs/dino363_repaired_cached_52058b",
+      "summary": {
+        "image_count": 363,
+        "registered_images": 321,
+        "point_count": 3036,
+        "observation_count": 25716,
+        "mean_reprojection_error_px": 1.1620483765809917,
+        "median_reprojection_error_px": 1.0208955765637553,
+        "p95_reprojection_error_px": 2.6601182748798333,
+        "positive_depth_ratio": 1.0,
+        "tracks": 3664,
+        "elapsed_seconds": 134.96933399996487,
+        "timing_scope": "cached feature and F-RANSAC reuse; timings exclude extraction and pair geometry"
+      },
+      "config": {
+        "seed": 0,
+        "features": {
+          "max_features": 4000,
+          "ratio": 0.75
+        },
+        "geometry": {
+          "threshold_px": 1.5,
+          "max_trials": 2000,
+          "confidence": 0.99,
+          "min_trials": 20,
+          "min_inliers": 30,
+          "min_pair_inliers": 20
+        },
+        "mapping": {
+          "min_pnp_points": 15,
+          "pnp_threshold_px": 3,
+          "min_angle_deg": 1.5,
+          "max_reprojection_px": 3,
+          "track_conflict_policy": "split"
+        },
+        "bundle_adjustment": {
+          "enabled": false,
+          "max_nfev": 50,
+          "loss": "huber",
+          "f_scale": 1
+        }
+      },
+      "pose_quality": {
+        "before": {
+          "common_view_count": 101,
+          "median_rotation_error_deg": 2.755482626810183,
+          "p90_rotation_error_deg": 5.0925485886773085
+        },
+        "after": {
+          "common_view_count": 101,
+          "median_rotation_error_deg": 1.9690833110382593,
+          "p90_rotation_error_deg": 3.8897418433444426
+        },
+        "scope": "Orientation gauge fitted separately on the same 101 shared cameras; reference used for evaluation only",
+        "newly_registered_images": 220,
+        "previously_registered_now_rejected": [
+          18
+        ]
+      },
+      "cache_scope": "cached feature and F-RANSAC reuse; timings exclude extraction and pair geometry"
+    },
+    "3dgs_optimization_ablation": {
+      "report_directory": "reports/3dgs-ablation-20261019",
+      "documentation": "docs/3dgs-optimization-ablation.md",
+      "training_jobs": 50,
+      "object_identities": 2,
+      "screening": {
+        "input_sets": [
+          "temple47",
+          "temple312",
+          "dino321"
+        ],
+        "seeds": [
+          0,
+          1
+        ],
+        "steps": 3000,
+        "resolution": [
+          160,
+          120
+        ]
+      },
+      "confirmation": {
+        "baseline": {
+          "metrics_all_15": {
+            "step": 10000,
+            "total": 10000,
+            "loss": 0.003953002858906984,
+            "validation_mse": 0.002183790225535631,
+            "psnr": 26.60789082207177,
+            "psnr_scope": "mean_validation_view_mse",
+            "ssim": 0.7906150062878926
+          },
+          "test_7": {
+            "views": 7,
+            "psnr_from_mean_mse": 26.44635201847151,
+            "mean_view_psnr": 26.7034927162285,
+            "ssim": 0.787026686327798
+          },
+          "gaussians": 24527,
+          "training_seconds": 268.40599999999904,
+          "peak_cuda_allocated_mib": 90.50048828125,
+          "model_sha256": "e88f5c5add744b023ab4825f7d29aeb5c9a27caa06b1e3386cc4abb1ae5b000c",
+          "dataset_sha256": "fa68ec4a04ee046e0d3cb499d14176e5ed9c542d580b9d794a685a0c517cbba5",
+          "summary_sha256": "478268c532d1fb2d4b1c258238a6e9c07874ea26c33733459011788ad6c3e6c1"
+        },
+        "combined": {
+          "metrics_all_15": {
+            "step": 10000,
+            "total": 10000,
+            "loss": 0.010294143110513687,
+            "validation_mse": 0.00023056699380200976,
+            "psnr": 36.37202862850551,
+            "psnr_scope": "mean_validation_view_mse",
+            "ssim": 0.9561254183451334
+          },
+          "test_7": {
+            "views": 7,
+            "psnr_from_mean_mse": 36.016682177220375,
+            "mean_view_psnr": 37.24596316182168,
+            "ssim": 0.9546348111970084
+          },
+          "gaussians": 100000,
+          "training_seconds": 559.8279999999977,
+          "peak_cuda_allocated_mib": 293.6884765625,
+          "model_sha256": "e88f5c5add744b023ab4825f7d29aeb5c9a27caa06b1e3386cc4abb1ae5b000c",
+          "dataset_sha256": "fa68ec4a04ee046e0d3cb499d14176e5ed9c542d580b9d794a685a0c517cbba5",
+          "summary_sha256": "a1e8c68332fdeab5af9fa23dcc20dbcadd1b5d9dd212e27191c21ecbfb76068d"
+        }
+      },
+      "confirmation_scope": {
+        "scene": "temple312",
+        "train_dev_test": [
+          297,
+          8,
+          7
+        ],
+        "seed": 0,
+        "steps": 10000,
+        "resolution": [
+          640,
+          480
+        ],
+        "max_gaussians": 100000
+      },
+      "experiment_code_sha256": {
+        "src/minicolmap/rendering/algorithms.py": "0f396f5d8a6a55d9f62394e0e16f3addf741b1a4bc6ee2cb285d9a287082bb03",
+        "src/minicolmap/rendering/pipeline.py": "248806208453e57b478f17e809b1ba14a33871ed3c6ea0b3c1207d9ced371166",
+        "src/minicolmap/rendering/gaussian_training.py": "2d059b67f1b6e7d95ce286b289b39df65e58d1fccf9dcd625de000de746d6163",
+        "src/minicolmap/rendering/config.py": "028beb1933da36f5c87a54d6ccefe0bc9ae5a2c3d49a125962f260370977e137",
+        "src/minicolmap/rendering/data.py": "5246938b9a89a48d55d79a368b5b45921e15c9448e60576f8d774507c9a34f14",
+        "src/minicolmap/rendering/gaussian_backend.py": "5c24ea9aa5c45c1ef3869207e4e7bad912fe35b67ebda5f97cfcbfc8ffe75849",
+        "src/minicolmap/rendering/live.py": "897a4525a537b4a4606b6c7fb2bb126a5f502ed2f2cf387e2830384b85a604c8"
+      },
+      "current_code_sha256": {
+        "src/minicolmap/rendering/algorithms.py": "0f396f5d8a6a55d9f62394e0e16f3addf741b1a4bc6ee2cb285d9a287082bb03",
+        "src/minicolmap/rendering/pipeline.py": "305264a215d0fdb213f904b76e84e6cf925700d2b570ad2c935a0951d00690af",
+        "src/minicolmap/rendering/gaussian_training.py": "2d059b67f1b6e7d95ce286b289b39df65e58d1fccf9dcd625de000de746d6163",
+        "src/minicolmap/rendering/config.py": "028beb1933da36f5c87a54d6ccefe0bc9ae5a2c3d49a125962f260370977e137",
+        "src/minicolmap/rendering/data.py": "5246938b9a89a48d55d79a368b5b45921e15c9448e60576f8d774507c9a34f14",
+        "src/minicolmap/rendering/gaussian_backend.py": "5c24ea9aa5c45c1ef3869207e4e7bad912fe35b67ebda5f97cfcbfc8ffe75849",
+        "src/minicolmap/rendering/live.py": "897a4525a537b4a4606b6c7fb2bb126a5f502ed2f2cf387e2830384b85a604c8"
+      },
+      "selection": "dev only; identical frozen maps; test images excluded from training loss; map/initial colors from all-view SfM",
+      "browser_720p": {
+        "baseline": {
+          "run_id": "result-139368514469afcd",
+          "scope": "Headless local Edge, production OrbitControls/JPEG UI, RAF submissions",
+          "warmup_seconds": 10,
+          "measurement_seconds": 60,
+          "ready": {
+            "type": "ready",
+            "backend": "gsplat",
+            "device": "cuda:0",
+            "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+            "gaussian_count": 24527,
+            "sh_degree": 3,
+            "step": 10000,
+            "coordinate_system": "sfm_world",
+            "max_width": 1920,
+            "max_height": 1080,
+            "max_pixels": 2073600,
+            "jpeg_quality": 85,
+            "runtime": {
+              "platform": "win32",
+              "cpu_count": 20,
+              "python_trace_active": false,
+              "qos_policy": "high",
+              "qos_applied": true,
+              "windows_power_throttling": {
+                "before": {
+                  "control_mask": 0,
+                  "state_mask": 0
+                },
+                "requested": {
+                  "control_mask": 1,
+                  "state_mask": 0
+                }
+              }
+            }
+          },
+          "resolution": [
+            1280,
+            720
+          ],
+          "new_image_submissions": 3230,
+          "actual_duration_seconds": 59.973099999997764,
+          "browser_fps": 53.84080529437565,
+          "frame_interval_p95_ms": 29.800000000745058,
+          "latency_ms": {
+            "mean": 25.370092879212677,
+            "p50": 24.5,
+            "p95": 36.399999998509884
+          },
+          "render_ms": {
+            "mean": 8.61486643268597,
+            "p50": 6.618112087249756,
+            "p95": 18.8723201751709
+          },
+          "encode_ms": {
+            "mean": 2.410685417976522,
+            "p50": 2.3255999985849485,
+            "p95": 2.9136000011931174
+          },
+          "readback_ms": {
+            "mean": 0.9200585448184381,
+            "p50": 0.5710000041290186,
+            "p95": 2.5241000039386563
+          },
+          "target_30fps_met": true,
+          "status": "passed",
+          "page_errors": []
+        },
+        "combined": {
+          "run_id": "result-342451ad6e98fed3",
+          "scope": "Headless local Edge, production OrbitControls/JPEG UI, RAF submissions",
+          "warmup_seconds": 10,
+          "measurement_seconds": 60,
+          "ready": {
+            "type": "ready",
+            "backend": "gsplat",
+            "device": "cuda:0",
+            "gpu_name": "NVIDIA GeForce RTX 4060 Laptop GPU",
+            "gaussian_count": 100000,
+            "sh_degree": 3,
+            "step": 10000,
+            "coordinate_system": "sfm_world",
+            "max_width": 1920,
+            "max_height": 1080,
+            "max_pixels": 2073600,
+            "jpeg_quality": 85,
+            "runtime": {
+              "platform": "win32",
+              "cpu_count": 20,
+              "python_trace_active": false,
+              "qos_policy": "high",
+              "qos_applied": true,
+              "windows_power_throttling": {
+                "before": {
+                  "control_mask": 0,
+                  "state_mask": 0
+                },
+                "requested": {
+                  "control_mask": 1,
+                  "state_mask": 0
+                }
+              }
+            }
+          },
+          "resolution": [
+            1280,
+            720
+          ],
+          "new_image_submissions": 3253,
+          "actual_duration_seconds": 59.98,
+          "browser_fps": 54.21807269089697,
+          "frame_interval_p95_ms": 23.099999997764826,
+          "latency_ms": {
+            "mean": 24.3561020596368,
+            "p50": 24.300000000745058,
+            "p95": 29.799999997019768
+          },
+          "render_ms": {
+            "mean": 8.617008828251977,
+            "p50": 8.066047668457031,
+            "p95": 12.183551788330078
+          },
+          "encode_ms": {
+            "mean": 2.6010310175792526,
+            "p50": 2.536899999540765,
+            "p95": 3.1196999989333563
+          },
+          "readback_ms": {
+            "mean": 0.6737853673039554,
+            "p50": 0.5700000037904829,
+            "p95": 1.0973000025842339
+          },
+          "target_30fps_met": true,
+          "status": "passed",
+          "page_errors": []
+        }
+      }
     }
   }
 }

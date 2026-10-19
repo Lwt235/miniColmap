@@ -51,7 +51,8 @@ class DSU(Generic[T]):
         return self.size[self.find(x)]
 
 
-def build_tracks(pair_matches: dict[tuple[int, int], NDArray]) -> list[Track]:
+def build_tracks(pair_matches: dict[tuple[int, int], NDArray], *,
+                 conflict_policy: str = 'reject') -> list[Track]:
     """T1: Join verified pair matches into deterministic multi-view tracks.
 
     A key (i, j) identifies two distinct nonnegative image IDs. Its
@@ -63,8 +64,13 @@ def build_tracks(pair_matches: dict[tuple[int, int], NDArray]) -> list[Track]:
     This deliberately conservative conflict policy avoids order-dependent
     merging. No descriptor matching or epipolar verification happens here.
 
+    conflict_policy='split' instead retains cycle-supported, image-consistent
+    subtracks. The default 'reject' preserves the original T1 contract.
+
     Checkpoint: why can a single false match corrupt several images' tracks?
     """
+    if conflict_policy not in ('reject', 'split'):
+        raise ValueError("conflict_policy must be reject or split")
     if not isinstance(pair_matches, dict):
         raise ValueError("pair_matches must be a dict")
     for pair, matches in pair_matches.items():
@@ -79,7 +85,9 @@ def build_tracks(pair_matches: dict[tuple[int, int], NDArray]) -> list[Track]:
             raise ValueError("each match array must have shape (M, 2)")
         if not np.issubdtype(matches.dtype, np.integer) or np.any(matches < 0):
             raise ValueError("feature indices must be nonnegative integers")
-    # TODO T1: graph/union-find components -> detect conflict -> sort tracks.
+    if conflict_policy == 'split':
+        return _split_conflicting_tracks(pair_matches)
+    # The original conservative policy remains the default.
     dsu = DSU()
     for (i, j), matches in pair_matches.items():
         for fi, fj in matches:
@@ -107,3 +115,46 @@ def build_tracks(pair_matches: dict[tuple[int, int], NDArray]) -> list[Track]:
 
     tracks.sort()
     return tracks
+
+
+def _split_conflicting_tracks(pair_matches: dict[tuple[int, int], NDArray]) -> list[Track]:
+    """Keep consistent subtracks instead of deleting an entire noisy component.
+
+    Prefer edges supported by observation triangles, then by distinct matches in
+    the image pair. Canonical endpoints break ties independently of input order.
+    Never merge components containing different features from the same image.
+    No coordinate, pose, or reference calibration is used by this graph policy.
+    """
+    neighbors: dict[Observation, set[Observation]] = {}
+    pair_edges = {}
+    for (i, j), matches in pair_matches.items():
+        key = tuple(sorted((int(i), int(j))))
+        edges = pair_edges.setdefault(key, set())
+        for fi, fj in matches:
+            a, b = sorted(((int(i), int(fi)), (int(j), int(fj))))
+            edges.add((a, b))
+            neighbors.setdefault(a, set()).add(b)
+            neighbors.setdefault(b, set()).add(a)
+    ranked = []
+    for edges in pair_edges.values():
+        for a, b in edges:
+            triangles = len(neighbors[a] & neighbors[b])
+            ranked.append((-triangles, -len(edges), a, b))
+    ranked.sort()
+    dsu = DSU()
+    image_sets = {obs: {obs[0]} for obs in neighbors}
+    for _, _, a, b in ranked:
+        ra, rb = dsu.find(a), dsu.find(b)
+        if ra == rb or image_sets[ra] & image_sets[rb]:
+            continue
+        images = image_sets[ra] | image_sets[rb]
+        dsu.union(ra, rb)
+        root = dsu.find(ra)
+        image_sets.pop(ra)
+        image_sets.pop(rb)
+        image_sets[root] = images
+    components = {}
+    for obs in neighbors:
+        components.setdefault(dsu.find(obs), []).append(obs)
+    return sorted(tuple(sorted(observations)) for observations in components.values()
+                  if len(observations) >= 2)

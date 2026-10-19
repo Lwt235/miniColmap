@@ -221,6 +221,40 @@ def test_worker_persists_real_preview_files_and_metrics_protocol(rendering_clien
     assert restarted.model(run["id"])[0].points[17].id == 17
 
 
+def test_png_response_releases_file_before_slow_network_send(rendering_client):
+    import asyncio
+    from starlette.responses import FileResponse
+
+    client, source, _ = rendering_client
+    run = start(client, source).json()
+    output = Path(run['output_path'])
+    image = output / 'previews' / 'reference-4.png'
+    image.parent.mkdir()
+    original = png()
+    image.write_bytes(original)
+    endpoint = next(route.endpoint for route in client.app.routes
+                    if getattr(route, 'path', '') == '/api/runs/{run_id}/artifacts/{filename:path}')
+    response = endpoint(run['id'], 'previews/reference-4.png')
+    assert not isinstance(response, FileResponse)
+    replacement = image.with_suffix('.tmp')
+    replacement.write_bytes(b'new preview')
+    sent = []
+
+    async def send(message):
+        if message['type'] == 'http.response.body':
+            # Simulate publishing while the client has not consumed this body.
+            replacement.replace(image)
+            sent.append(message['body'])
+
+    async def receive():
+        return {'type': 'http.disconnect'}
+
+    asyncio.run(response({'type': 'http', 'method': 'GET'}, receive, send))
+    assert b''.join(sent) == original
+    assert image.read_bytes() == b'new preview'
+    assert response.media_type == 'image/png'
+
+
 def test_preview_publication_rejects_uncontained_and_nonexistent_files(rendering_client):
     client, source, _ = rendering_client
     run = start(client, source).json()

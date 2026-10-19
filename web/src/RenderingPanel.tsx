@@ -51,7 +51,7 @@ const fields: {
   min?: number;
 }[] = [
   { key: 'iterations', name: '训练迭代数', hint: '步', min: 1 },
-  { key: 'learning_rate', name: '学习率', hint: 'Adam', step: 0.0001, min: 0.000001 },
+  { key: 'learning_rate', name: '学习率', hint: 'Adam 基准', step: 0.0001, min: 0.000001 },
   { key: 'image_downscale', name: '图像降采样', hint: '倍；越大越快', min: 1 },
   { key: 'rays_per_batch', name: '每批光线数', hint: 'NeRF / 批', min: 1 },
   { key: 'samples_per_ray', name: '每条光线采样', hint: 'NeRF / 点', min: 1 },
@@ -523,6 +523,66 @@ export default function RenderingPanel({
                 <details open>
                   <summary>3DGS 高斯参数</summary>
                   <div className="rendering-fields">
+                    {(
+                      [
+                        [
+                          'optimizer_state',
+                          '增密时的 Adam 状态',
+                          'preserve',
+                          [
+                            ['preserve', '保留已有高斯动量'],
+                            ['reset', '整体重置（历史消融基线）'],
+                          ],
+                        ],
+                        [
+                          'lr_mode',
+                          '高斯学习率策略',
+                          'uniform',
+                          [
+                            ['uniform', '统一学习率'],
+                            ['grouped', '参数分组＋位置衰减'],
+                          ],
+                        ],
+                        [
+                          'density_strategy',
+                          '密度控制策略',
+                          'legacy',
+                          [
+                            ['legacy', '原有中心梯度策略'],
+                            ['adaptive', '屏幕梯度累计＋克隆／分裂'],
+                          ],
+                        ],
+                        [
+                          'loss',
+                          '图像训练损失',
+                          'mse',
+                          [
+                            ['mse', 'MSE'],
+                            ['l1_ssim', 'L1＋SSIM'],
+                          ],
+                        ],
+                      ] as const
+                    ).map(([key, label, fallback, choices]) => (
+                      <label key={key}>
+                        {label}
+                        <select
+                          aria-label={label}
+                          value={config.gaussian[key] ?? fallback}
+                          onChange={(e) =>
+                            setConfig({
+                              ...config,
+                              gaussian: { ...config.gaussian, [key]: e.target.value },
+                            })
+                          }
+                        >
+                          {choices.map(([value, text]) => (
+                            <option key={value} value={value}>
+                              {text}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                    ))}
                     <label>
                       球谐阶数
                       <select
@@ -612,12 +672,49 @@ export default function RenderingPanel({
                       </label>
                     ))}
                   </div>
+                  <details>
+                    <summary>优化与密度控制高级参数</summary>
+                    <div className="rendering-fields">
+                      {(
+                        [
+                          ['position_lr_final_ratio', '位置最终学习率比例', 0.01, 0.01],
+                          ['ssim_weight', 'SSIM 损失权重', 0.2, 0.05],
+                          ['densify_start', '自适应增密开始步', 500, 1],
+                          ['densify_stop', '自适应增密结束步', 15000, 1],
+                          ['grow_grad2d', '累计屏幕梯度阈值', 0.0002, 0.0001],
+                          ['split_scale', '克隆／分裂尺度阈值', 0.01, 0.001],
+                          ['prune_scale', '最大三维尺度', 0.1, 0.01],
+                          ['prune_screen_radius', '最大屏幕半径比例', 0.15, 0.01],
+                          ['min_opacity', '剪枝透明度下限', 0.005, 0.001],
+                          ['opacity_reset_every', '透明度重置间隔（0关闭）', 3000, 1],
+                        ] as const
+                      ).map(([key, label, fallback, step]) => (
+                        <label key={key}>
+                          {label}
+                          <input
+                            type="number"
+                            aria-label={label}
+                            step={step}
+                            min={0}
+                            value={config.gaussian[key] ?? fallback}
+                            onChange={(e) =>
+                              setConfig({
+                                ...config,
+                                gaussian: { ...config.gaussian, [key]: e.target.valueAsNumber },
+                              })
+                            }
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </details>
                   <p className="rendering-note">
                     最大高斯数支持设置到500万，是初始化与增密的数量上限，不会自动填满。大模型使用CUDA/gsplat。
                     点数超过高斯上限时稳定子采样。首次冒烟实验推荐降采样 16 倍、最多 128
-                    个高斯。增密间隔 0 表示禁用；开启前请补完增密与剪枝练习。球谐升阶间隔 0
-                    表示直接启用全部阶数，1000 表示每 1000 步升一阶。 球谐颜色须完成 S6。reference
-                    用于数学验证；gsplat 需 CUDA 和独立光栅扩展。
+                    个高斯。增密间隔 0
+                    表示禁用。自适应策略累计可见高斯的屏幕梯度，并在指定窗口内克隆或分裂。 默认保留
+                    Adam 动量；整体重置仅用于复现历史基线。球谐升阶间隔 0 表示直接启用全部阶数，1000
+                    表示每 1000 步升一阶。reference 用于数学验证；gsplat 需 CUDA 和独立光栅扩展。
                     {capabilities?.gsplat_native_available
                       ? '检测到已编译且通过自检的本机 gsplat 扩展；训练时检查 CUDA 设备。'
                       : capabilities?.gsplat_available
@@ -731,6 +828,12 @@ export default function RenderingPanel({
               {number(metrics?.psnr, 2)} <small>dB</small>
             </strong>
           </div>
+          {metrics?.ssim !== undefined && (
+            <div>
+              <small>最终验证 SSIM</small>
+              <strong>{number(metrics.ssim, 4)}</strong>
+            </div>
+          )}
         </div>
         {trainingRun?.pipeline === '3dgs' && trainingRun.status === 'completed' && (
           <GaussianLiveViewer
@@ -754,7 +857,7 @@ export default function RenderingPanel({
               <div className="rendering-empty">
                 <ImageIcon size={32} />
                 <p>尚无渲染图像</p>
-                <small>补完算法并完成预览步骤后显示真实输出。</small>
+                <small>完成训练预览后，在此显示验证视角的实际渲染图像。</small>
               </div>
             )}
           </figure>

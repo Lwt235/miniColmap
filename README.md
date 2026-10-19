@@ -15,7 +15,7 @@ Python 实现几何估计与可微渲染数学，React + Three.js 提供交互�
 | 增量 SfM | SIFT 匹配、自适应 F-RANSAC、E 分解与两视图初始化、冲突轨迹处理、PnP 注册、多视图补点、可选 Bundle Adjustment |
 | 初始化优化 | 按候选匹配数排序，以有效点数上界剪枝，保留平局候选的视差比较；输出候选与剪枝诊断 |
 | NeRF | 位置编码、带视角分支的 MLP、射线采样、体渲染、训练/验证划分、检查点与新视角渲染；支持直接使用已知位姿照片 |
-| 3DGS | 各向异性协方差、投影、Alpha 合成、0–3 阶实球谐颜色、简化增密与剪枝；PyTorch 参考实现与 gsplat CUDA 后端 |
+| 3DGS | 各向异性协方差、投影、Alpha 合成、0–3 阶实球谐颜色；屏幕梯度增密/分裂、Adam 状态迁移、分组学习率与 L1＋SSIM；reference/gsplat 后端 |
 | 三维检查 | 点云与相机视锥、RGB/误差/轨迹长度着色、观测叠加、阶段快照、平滑对齐相机并保持自由操作 |
 | 实时与任务管理 | 独立计算进程、SSE 进度、取消与重连、历史结果、失效索引清理；3DGS 常驻 GPU + WebSocket 图像流 |
 | 数据与导出 | 标定照片清单、Middlebury 数据准备、JSON/PLY/COLMAP TXT、训练权重与高斯参数归档 |
@@ -36,15 +36,16 @@ NeRF 需要照片、内参和位姿，**无需先构建点云**；3DGS 则需要
 | 两视图初始化优化 | **31.761 s → 1.097 s，约 29×** | 同一 47 图配置；历史记录核对新旧完整模型一致，单次对照 |
 | NeRF 新视角 | **24.17 dB PSNR** | 47 图，36 训练 / 11 验证，160×120，6,000 步 |
 | 3DGS 新视角 | **31.83 dB PSNR** | TempleRing，36 / 11 视图，160×120，5,000 步，6,726 高斯 |
-| 3DGS 实时链路 | **91.13 帧/秒的新图像提交** | RTX 4060 Laptop，6,570 高斯，1280×720，headless Edge，测量 60 s |
+| 3DGS 训练策略消融 | **26.45 → 36.02 dB PSNR，0.7870 → 0.9546 SSIM** | Temple312，同地图、同迭代数，640×480，10,000 步，297 训练 / 8 dev / 7 test；单种子原图确认 |
+| 3DGS 实时链路 | **54.22 帧/秒的新图像提交，P95 29.8 ms** | RTX 4060 Laptop，100,000 高斯，1280×720，headless Edge，测量 60 s |
 
 实时数字统计浏览器 RAF 中提交的新渲染图像，包含 CUDA 渲染、读回、JPEG 传输与解码，未测量显示器刷新率。高斯容量允许设置到 500 万；该上限不代表百万规模训练或实时性能已验证。
 
-| 原始验证视图 | 3DGS 渲染 |
+| 原始测试视图 | 3DGS 渲染 |
 | :---: | :---: |
-| ![TempleRing 验证相机 4 原图](docs/assets/temple-reference.png) | ![TempleRing 3DGS 5000 步结果](docs/assets/temple-3dgs.png) |
+| ![Temple312 测试相机 40 原图](docs/assets/temple312-test40-reference.png) | ![Temple312 优化后 3DGS 10000 步结果](docs/assets/temple312-test40-optimized.png) |
 
-*同一验证相机、160×120；表中 PSNR 使用全部 11 个验证视角的平均 MSE 计算，非此单图分数。低分辨率结果仍有纹理细节限制。*
+*同一测试相机、640×480；36.02 dB 使用 7 个固定测试视角的平均 MSE 计算，非此单图分数。固定 SfM 地图下的单场景原图确认，未联合优化相机。*
 
 <details>
 <summary>查看 NeRF 与实时渲染界面</summary>
@@ -116,5 +117,6 @@ npm run build
 - [架构说明](docs/architecture.md)：算法流程、模块职责、数学约定、实时链路与实现边界。
 - [参数与数据格式](docs/configuration.md)：完整配置、输入清单、模型与训练产物。
 - [实验结果](docs/evaluation.md)：可核对的指标、性能条件与复现入口。
+- [3DGS 优化与消融](docs/3dgs-optimization-ablation.md)：Adam 状态迁移、分组学习率、密度策略、损失及受控实验。
 
 当前重点是小型静态场景的稀疏重建与新视图合成。尚不支持未知内参自动标定、稠密 MVS、网格重建、联合位姿训练或完整 COLMAP 模型导入；NeRF 与 3DGS 的画质和大规模性能仍有优化空间。

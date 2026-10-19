@@ -1,0 +1,127 @@
+{
+  "completed_jobs": 12,
+  "input_sets": [
+    "dino321",
+    "temple312",
+    "temple47"
+  ],
+  "scope": "Within-input-set paired seeds. TempleRing/Temple share object identity.",
+  "rows": [
+    {
+      "scene": "dino321",
+      "variant": "baseline",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 27.277527505104466,
+      "paired_dev_gain_db": 0.0,
+      "test_psnr": 27.26433993510932,
+      "test_psnr_sample_std": 0.025059944051540137,
+      "test_ssim": 0.8520229570567608,
+      "gaussians": 3036,
+      "training_seconds": 48.77349999999933,
+      "peak_cuda_allocated_mb": 22.90234375,
+      "local_fps": 111.40347797617208,
+      "local_p95_ms": 12.181697499272557
+    },
+    {
+      "scene": "dino321",
+      "variant": "loss",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 28.171955107521207,
+      "paired_dev_gain_db": 0.8944276024167443,
+      "test_psnr": 27.79526873720213,
+      "test_psnr_sample_std": 0.0017678023885774087,
+      "test_ssim": 0.8944108635187149,
+      "gaussians": 3036,
+      "training_seconds": 53.85950000000048,
+      "peak_cuda_allocated_mb": 24.822265625,
+      "local_fps": 109.47831087741727,
+      "local_p95_ms": 13.32862249919344
+    },
+    {
+      "scene": "temple312",
+      "variant": "baseline",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 26.878561153573436,
+      "paired_dev_gain_db": 0.0,
+      "test_psnr": 26.90168664824499,
+      "test_psnr_sample_std": 0.1024304280836139,
+      "test_ssim": 0.8224995647157942,
+      "gaussians": 19648,
+      "training_seconds": 69.69499999999971,
+      "peak_cuda_allocated_mb": 55.61572265625,
+      "local_fps": 88.44368184068279,
+      "local_p95_ms": 17.41947000291473
+    },
+    {
+      "scene": "temple312",
+      "variant": "loss",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 27.19145189589448,
+      "paired_dev_gain_db": 0.31289074232104674,
+      "test_psnr": 27.368681292407544,
+      "test_psnr_sample_std": 0.27602615581741646,
+      "test_ssim": 0.8683235730443681,
+      "gaussians": 19648,
+      "training_seconds": 75.21100000000115,
+      "peak_cuda_allocated_mb": 55.61572265625,
+      "local_fps": 87.96846012394056,
+      "local_p95_ms": 21.62097749978784
+    },
+    {
+      "scene": "temple47",
+      "variant": "baseline",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 29.449151346995812,
+      "paired_dev_gain_db": 0.0,
+      "test_psnr": 29.744237749866222,
+      "test_psnr_sample_std": 0.06799033738640087,
+      "test_ssim": 0.8925899684429168,
+      "gaussians": 6570,
+      "training_seconds": 50.90599999999904,
+      "peak_cuda_allocated_mb": 30.00244140625,
+      "local_fps": 144.30614543496444,
+      "local_p95_ms": 8.718739998857927
+    },
+    {
+      "scene": "temple47",
+      "variant": "loss",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 30.358182904043275,
+      "paired_dev_gain_db": 0.9090315570474647,
+      "test_psnr": 30.470964301969964,
+      "test_psnr_sample_std": 0.024898154182523835,
+      "test_ssim": 0.9286346971988677,
+      "gaussians": 6570,
+      "training_seconds": 55.21099999999933,
+      "peak_cuda_allocated_mb": 30.09423828125,
+      "local_fps": 143.62732578599594,
+      "local_p95_ms": 8.93337500056077
+    }
+  ],
+  "dev_ranking": [
+    {
+      "variant": "loss",
+      "mean_paired_dev_gain_db": 0.7054499672617519
+    }
+  ],
+  "selection_metric": "Mean paired dev PSNR gain, equal weight per input set. Test is not used for selection.",
+  "provisional": false
+}

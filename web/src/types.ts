@@ -7,12 +7,14 @@ export type Config = {
     confidence: number;
     min_trials: number;
     min_inliers: number;
+    min_pair_inliers?: number;
   };
   mapping: {
     min_pnp_points: number;
     pnp_threshold_px: number;
     min_angle_deg: number;
     max_reprojection_px: number;
+    track_conflict_policy?: 'reject' | 'split';
   };
   bundle_adjustment: {
     enabled: boolean;
@@ -178,12 +180,32 @@ export type RenderingConfig = {
     initial_opacity: number;
     max_gaussians: number;
     densify_every: number;
+    optimizer_state?: 'preserve' | 'reset';
+    lr_mode?: 'uniform' | 'grouped';
+    position_lr_final_ratio?: number;
+    loss?: 'mse' | 'l1_ssim';
+    ssim_weight?: number;
+    density_strategy?: 'legacy' | 'adaptive';
+    densify_start?: number;
+    densify_stop?: number;
+    grow_grad2d?: number;
+    split_scale?: number;
+    prune_scale?: number;
+    prune_screen_radius?: number;
+    min_opacity?: number;
+    opacity_reset_every?: number;
     sh_degree?: number;
     sh_degree_interval?: number;
     backend?: 'reference' | 'gsplat';
   };
 };
-export type TrainingMetrics = { loss?: number; psnr?: number; step?: number; total?: number };
+export type TrainingMetrics = {
+  loss?: number;
+  psnr?: number;
+  ssim?: number;
+  step?: number;
+  total?: number;
+};
 export type RenderPreview = {
   url: string;
   reference_url?: string;

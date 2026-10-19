@@ -1,0 +1,29 @@
+{
+  "training_jobs_completed": 50,
+  "python": {
+    "tests": 654,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "python_native_cuda_opt_in": true,
+  "frontend_tests_passed": 40,
+  "typescript": "passed",
+  "production_build": "passed",
+  "browser_config_validation": "passed",
+  "browser_live_interactions": "passed",
+  "browser_performance": {
+    "baseline": {
+      "status": "passed",
+      "fps": 53.84080529437565,
+      "latency_p95_ms": 36.399999998509884
+    },
+    "combined": {
+      "status": "passed",
+      "fps": 54.21807269089697,
+      "latency_p95_ms": 29.799999997019768
+    }
+  },
+  "large_map_scene": "312 cameras / 19648 points, batched mean errors match per-point details",
+  "gpu_lease_released": true
+}

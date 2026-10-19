@@ -13,17 +13,25 @@ class FeatureConfig(TypedDict):
     ratio: float
 
 
-class GeometryConfig(TypedDict):
+class GeometryOverrides(TypedDict, total=False):
+    min_pair_inliers: int  # Omitted: use min_inliers, preserving legacy behavior.
+
+
+class GeometryConfig(GeometryOverrides):
     """Pair geometry: squared-Sampson threshold is threshold_px ** 2."""
 
     threshold_px: float
     max_trials: int
     confidence: float  # Target probability in (0, 1), subject to max_trials.
     min_trials: int  # Positive minimum; the hard max_trials cap takes precedence.
-    min_inliers: int  # Pair admission and M1's minimum accepted initial points.
+    min_inliers: int  # M1's minimum accepted initial points; legacy pair fallback.
 
 
-class MappingConfig(TypedDict):
+class MappingOverrides(TypedDict, total=False):
+    track_conflict_policy: Literal['reject', 'split']
+
+
+class MappingConfig(MappingOverrides):
     """M1-M3 policy. Distances are pixels and min_angle_deg is in degrees."""
 
     min_pnp_points: int  # Unique input pairs AND retained M2 inliers required.
@@ -88,7 +96,9 @@ def resolve_config(overrides: dict | None = None) -> PipelineConfig:
             if key not in result:
                 raise ValueError(f'Unknown config section: {key}')
             if isinstance(result[key], dict):
-                if not isinstance(value, dict) or set(value) - set(result[key]):
+                optional = {'geometry': {'min_pair_inliers'},
+                            'mapping': {'track_conflict_policy'}}.get(key, set())
+                if not isinstance(value, dict) or set(value) - (set(result[key]) | optional):
                     raise ValueError(f'Invalid keys in config section: {key}')
                 result[key].update(value)
             else:
@@ -108,6 +118,10 @@ def resolve_config(overrides: dict | None = None) -> PipelineConfig:
     number('geometry', 'confidence', 0, 1, lower_open=True)
     number('geometry', 'min_trials', 1, integer=True)
     number('geometry', 'min_inliers', 8, integer=True)
+    if 'min_pair_inliers' in result['geometry']:
+        number('geometry', 'min_pair_inliers', 8, integer=True)
+    if result['mapping'].get('track_conflict_policy', 'reject') not in ('reject', 'split'):
+        raise ValueError('mapping.track_conflict_policy must be reject or split')
     number('mapping', 'min_pnp_points', 6, integer=True)
     number('mapping', 'pnp_threshold_px', 1e-12)
     number('mapping', 'min_angle_deg', 1e-12, 180)

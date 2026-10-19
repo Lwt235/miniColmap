@@ -17,7 +17,7 @@ from .mapper import VerifiedPair, initialize_map, register_next_image, triangula
 from .metrics import reconstruction_summary
 from .models import Reconstruction, validate_reconstruction
 from .optimization import refine_model
-from .tracks import build_tracks
+from .tracks import DSU, build_tracks
 from .timing import PipelineTimer
 
 
@@ -29,6 +29,17 @@ def _validate_map(model):
     validate_reconstruction(model)
     if any(len(point.observations) < 2 for point in model.points.values()):
         raise ValueError('Every mapped point needs at least two registered image observations')
+
+
+def matching_components(image_ids, pairs):
+    """Connected image sets, including isolated images, using admitted edges only."""
+    graph = DSU()
+    for pair in pairs:
+        graph.union(pair.image_id1, pair.image_id2)
+    components = {}
+    for image_id in sorted(image_ids):
+        components.setdefault(graph.find(image_id), []).append(image_id)
+    return sorted(components.values(), key=lambda ids: (-len(ids), ids))
 
 
 def reconstruct(dataset_path, output, settings: PipelineConfig, *,
@@ -124,7 +135,8 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
             inliers = indices[mask]
             item['inliers'] = len(inliers)
             np.savez_compressed(output / 'matches' / f'{i}_{j}.npz', candidates=indices, inlier_mask=mask, F=F)
-            if len(inliers) >= settings['geometry']['min_inliers']:
+            pair_min = settings['geometry'].get('min_pair_inliers', settings['geometry']['min_inliers'])
+            if len(inliers) >= pair_min:
                 pairs.append(VerifiedPair(i, j, inliers, F))
                 if len(pairs) <= 10:
                     rgb1 = load_rgb(dataset['image_paths'][i])
@@ -138,7 +150,14 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
                    message=f'Pair {i}, {j}: {len(inliers)} inliers')
         _write_json(output / 'pairs.json', pair_report)
         stage('tracks')
-        tracks = build_tracks({(p.image_id1, p.image_id2): p.indices for p in pairs})
+        tracks = build_tracks({(p.image_id1, p.image_id2): p.indices for p in pairs},
+                              conflict_policy=settings['mapping'].get('track_conflict_policy', 'reject'))
+        components = matching_components(model.images, pairs)
+        graph_report = {'pair_min_inliers': settings['geometry'].get('min_pair_inliers', settings['geometry']['min_inliers']),
+                        'track_conflict_policy': settings['mapping'].get('track_conflict_policy', 'reject'),
+                        'accepted_pairs': len(pairs), 'track_count': len(tracks),
+                        'component_sizes': [len(ids) for ids in components], 'components': components}
+        _write_json(output / 'matching_graph.json', graph_report)
         notify('progress', completed=len(tracks), total=len(tracks), message=f'Built {len(tracks)} tracks')
         stage('initialization')
         initialization_report = []
@@ -151,6 +170,13 @@ def reconstruct(dataset_path, output, settings: PipelineConfig, *,
             raise ValueError('M1 must initialize exactly two cameras and a nonempty valid map')
         snapshot('initialization')
         anchors = tuple(model.poses)
+        reachable = next(ids for ids in components if anchors[0] in ids)
+        graph_report.update(seed_image_ids=list(anchors), seed_component_size=len(reachable),
+                            unreachable_image_ids=sorted(set(model.images) - set(reachable)))
+        _write_json(output / 'matching_graph.json', graph_report)
+        if len(reachable) < len(model.images):
+            notify('warning', message=f'Initial map can reach {len(reachable)}/{len(model.images)} images in the verified matching graph',
+                   unreachable_image_ids=graph_report['unreachable_image_ids'])
         stage('incremental_mapping')
         notify('progress', completed=len(model.poses), total=len(model.images),
                message=f'Registered {len(model.poses)} images')

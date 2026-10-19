@@ -1,0 +1,359 @@
+{
+  "completed_jobs": 36,
+  "input_sets": [
+    "dino321",
+    "temple312",
+    "temple47"
+  ],
+  "scope": "Within-input-set paired seeds. TempleRing/Temple share object identity.",
+  "rows": [
+    {
+      "scene": "dino321",
+      "variant": "baseline",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 28.17150882909263,
+      "paired_dev_gain_db": 0.0,
+      "test_psnr": 28.097186442986093,
+      "test_psnr_sample_std": 0.1811918336984719,
+      "test_ssim": 0.8750354275107384,
+      "gaussians": 5126,
+      "training_seconds": 55.53100000000086,
+      "peak_cuda_allocated_mb": 27.798828125,
+      "local_fps": 100.12944696430773,
+      "local_p95_ms": 19.46774250154703
+    },
+    {
+      "scene": "dino321",
+      "variant": "adam",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 27.277839968476567,
+      "paired_dev_gain_db": -0.8936688606160619,
+      "test_psnr": 27.67378896281084,
+      "test_psnr_sample_std": 0.04343396909922567,
+      "test_ssim": 0.8279364965856075,
+      "gaussians": 5478.5,
+      "training_seconds": 55.25749999999971,
+      "peak_cuda_allocated_mb": 30.5078125,
+      "local_fps": 130.13968224080557,
+      "local_p95_ms": 12.618472499161724
+    },
+    {
+      "scene": "dino321",
+      "variant": "lr",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 30.73469729099236,
+      "paired_dev_gain_db": 2.563188461899733,
+      "test_psnr": 30.24931289572665,
+      "test_psnr_sample_std": 0.4155933203660258,
+      "test_ssim": 0.907887727022171,
+      "gaussians": 5730.5,
+      "training_seconds": 54.17950000000019,
+      "peak_cuda_allocated_mb": 30.419921875,
+      "local_fps": 129.82959024163856,
+      "local_p95_ms": 13.246234999769513
+    },
+    {
+      "scene": "dino321",
+      "variant": "density",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 27.954056707164433,
+      "paired_dev_gain_db": -0.21745212192819707,
+      "test_psnr": 27.93841607161503,
+      "test_psnr_sample_std": 0.1344153148924869,
+      "test_ssim": 0.8660442270338535,
+      "gaussians": 4039.5,
+      "training_seconds": 52.66399999999885,
+      "peak_cuda_allocated_mb": 26.1201171875,
+      "local_fps": 123.18694594094544,
+      "local_p95_ms": 12.807217500358087
+    },
+    {
+      "scene": "dino321",
+      "variant": "loss",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 28.76521698936841,
+      "paired_dev_gain_db": 0.5937081602757832,
+      "test_psnr": 28.128661514309574,
+      "test_psnr_sample_std": 0.22954625484657534,
+      "test_ssim": 0.9004257805645466,
+      "gaussians": 100000,
+      "training_seconds": 132.25750000000153,
+      "peak_cuda_allocated_mb": 236.3125,
+      "local_fps": 145.119337917334,
+      "local_p95_ms": 7.623564997720678
+    },
+    {
+      "scene": "dino321",
+      "variant": "combined",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 32.87576968711032,
+      "paired_dev_gain_db": 4.704260858017696,
+      "test_psnr": 30.893202187203222,
+      "test_psnr_sample_std": 0.02711791686314429,
+      "test_ssim": 0.9447568841278553,
+      "gaussians": 36494,
+      "training_seconds": 76.09399999999914,
+      "peak_cuda_allocated_mb": 94.79736328125,
+      "local_fps": 139.92153703057073,
+      "local_p95_ms": 8.607064998795977
+    },
+    {
+      "scene": "temple312",
+      "variant": "baseline",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 27.308704299903518,
+      "paired_dev_gain_db": 0.0,
+      "test_psnr": 27.51168814001488,
+      "test_psnr_sample_std": 0.4696566118973392,
+      "test_ssim": 0.8416961218629565,
+      "gaussians": 20398,
+      "training_seconds": 70.97649999999885,
+      "peak_cuda_allocated_mb": 63.6240234375,
+      "local_fps": 85.7738223262771,
+      "local_p95_ms": 23.1180525014679
+    },
+    {
+      "scene": "temple312",
+      "variant": "adam",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 27.00956595854169,
+      "paired_dev_gain_db": -0.2991383413618305,
+      "test_psnr": 27.054833033487522,
+      "test_psnr_sample_std": 0.10524072594990297,
+      "test_ssim": 0.8205804143633162,
+      "gaussians": 20380,
+      "training_seconds": 73.92950000000019,
+      "peak_cuda_allocated_mb": 65.69482421875,
+      "local_fps": 95.99409700012784,
+      "local_p95_ms": 13.525385002685635
+    },
+    {
+      "scene": "temple312",
+      "variant": "lr",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 31.41628119294198,
+      "paired_dev_gain_db": 4.107576893038461,
+      "test_psnr": 32.00696174247054,
+      "test_psnr_sample_std": 0.1008887123451448,
+      "test_ssim": 0.903840686593737,
+      "gaussians": 20425.5,
+      "training_seconds": 71.42149999999856,
+      "peak_cuda_allocated_mb": 65.57177734375,
+      "local_fps": 72.65763797258475,
+      "local_p95_ms": 31.348457499643693
+    },
+    {
+      "scene": "temple312",
+      "variant": "density",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 26.900967924678838,
+      "paired_dev_gain_db": -0.40773637522467965,
+      "test_psnr": 26.88933719373967,
+      "test_psnr_sample_std": 0.06030143760338567,
+      "test_ssim": 0.8206475930554527,
+      "gaussians": 19681.5,
+      "training_seconds": 75.21100000000115,
+      "peak_cuda_allocated_mb": 62.57177734375,
+      "local_fps": 90.99774105277095,
+      "local_p95_ms": 17.64352000091094
+    },
+    {
+      "scene": "temple312",
+      "variant": "loss",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 27.914459183898906,
+      "paired_dev_gain_db": 0.6057548839953881,
+      "test_psnr": 28.209174878672485,
+      "test_psnr_sample_std": 0.38849382989228864,
+      "test_ssim": 0.8665585262434823,
+      "gaussians": 100000,
+      "training_seconds": 129.5545000000002,
+      "peak_cuda_allocated_mb": 239.5869140625,
+      "local_fps": 98.7798704753346,
+      "local_p95_ms": 12.062184999285819
+    },
+    {
+      "scene": "temple312",
+      "variant": "combined",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 33.61544188323776,
+      "paired_dev_gain_db": 6.306737583334238,
+      "test_psnr": 34.98847707052645,
+      "test_psnr_sample_std": 0.08790893247281978,
+      "test_ssim": 0.9495821382318224,
+      "gaussians": 42627,
+      "training_seconds": 90.60949999999866,
+      "peak_cuda_allocated_mb": 113.45654296875,
+      "local_fps": 87.47426989657961,
+      "local_p95_ms": 22.678667499621945
+    },
+    {
+      "scene": "temple47",
+      "variant": "baseline",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 29.8084463912693,
+      "paired_dev_gain_db": 0.0,
+      "test_psnr": 30.016570450761918,
+      "test_psnr_sample_std": 0.05387347440300729,
+      "test_ssim": 0.8986264228820802,
+      "gaussians": 6576,
+      "training_seconds": 49.56250000000182,
+      "peak_cuda_allocated_mb": 31.58447265625,
+      "local_fps": 158.3308035339382,
+      "local_p95_ms": 6.82134500139
+    },
+    {
+      "scene": "temple47",
+      "variant": "adam",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 29.44331247225864,
+      "paired_dev_gain_db": -0.36513391901065795,
+      "test_psnr": 29.746312675100327,
+      "test_psnr_sample_std": 0.03638793409845462,
+      "test_ssim": 0.8931200861930848,
+      "gaussians": 6579,
+      "training_seconds": 48.46900000000096,
+      "peak_cuda_allocated_mb": 32.9931640625,
+      "local_fps": 151.71126562839157,
+      "local_p95_ms": 7.598832499297712
+    },
+    {
+      "scene": "temple47",
+      "variant": "lr",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 33.61903638449752,
+      "paired_dev_gain_db": 3.8105899932282234,
+      "test_psnr": 33.728506991551846,
+      "test_psnr_sample_std": 0.04748211700792419,
+      "test_ssim": 0.9262358903884887,
+      "gaussians": 6754,
+      "training_seconds": 49.22650000000067,
+      "peak_cuda_allocated_mb": 33.0458984375,
+      "local_fps": 155.22115957188717,
+      "local_p95_ms": 8.445249999476799
+    },
+    {
+      "scene": "temple47",
+      "variant": "density",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 29.480194463325116,
+      "paired_dev_gain_db": -0.32825192794418356,
+      "test_psnr": 29.756605737258745,
+      "test_psnr_sample_std": 0.01511720460112665,
+      "test_ssim": 0.8944041430950165,
+      "gaussians": 6576,
+      "training_seconds": 49.58600000000115,
+      "peak_cuda_allocated_mb": 32.31298828125,
+      "local_fps": 148.82311080527683,
+      "local_p95_ms": 7.771407500240455
+    },
+    {
+      "scene": "temple47",
+      "variant": "loss",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 31.14918452402348,
+      "paired_dev_gain_db": 1.3407381327541792,
+      "test_psnr": 31.372796082481727,
+      "test_psnr_sample_std": 0.007013936298931045,
+      "test_ssim": 0.9327948212623596,
+      "gaussians": 62834,
+      "training_seconds": 77.60900000000038,
+      "peak_cuda_allocated_mb": 146.009765625,
+      "local_fps": 150.53597403911994,
+      "local_p95_ms": 8.499889999075094
+    },
+    {
+      "scene": "temple47",
+      "variant": "combined",
+      "seeds": [
+        0,
+        1
+      ],
+      "dev_psnr": 35.480350229761854,
+      "paired_dev_gain_db": 5.671903838492554,
+      "test_psnr": 35.68949304641362,
+      "test_psnr_sample_std": 0.36731629276888983,
+      "test_ssim": 0.9644883275032043,
+      "gaussians": 37112.5,
+      "training_seconds": 72.63249999999971,
+      "peak_cuda_allocated_mb": 98.005859375,
+      "local_fps": 151.02669144508545,
+      "local_p95_ms": 7.370562500364031
+    }
+  ],
+  "dev_ranking": [
+    {
+      "variant": "combined",
+      "mean_paired_dev_gain_db": 5.5609674266148295
+    },
+    {
+      "variant": "lr",
+      "mean_paired_dev_gain_db": 3.4937851160554723
+    },
+    {
+      "variant": "loss",
+      "mean_paired_dev_gain_db": 0.8467337256751168
+    },
+    {
+      "variant": "density",
+      "mean_paired_dev_gain_db": -0.3178134750323534
+    },
+    {
+      "variant": "adam",
+      "mean_paired_dev_gain_db": -0.5193137069961834
+    }
+  ],
+  "selection_metric": "Mean paired dev PSNR gain, equal weight per input set. Test is not used for selection.",
+  "provisional": false
+}

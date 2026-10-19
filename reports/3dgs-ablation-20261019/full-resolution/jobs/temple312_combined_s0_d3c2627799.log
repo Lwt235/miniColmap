@@ -1,0 +1,21 @@
+{"job": "temple312_combined_s0_d3c2627799", "step": 500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 1000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 1500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 2000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 2500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 3000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 3500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 4000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 4500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 5000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 5500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 6000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 6500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 7000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 7500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 8000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 8500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 9000, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 9500, "total": 10000}
+{"job": "temple312_combined_s0_d3c2627799", "step": 10000, "total": 10000}
+{"finished": "temple312_combined_s0_d3c2627799", "metrics": {"step": 10000, "total": 10000, "loss": 0.010294143110513687, "validation_mse": 0.00023056699380200976, "psnr": 36.37202862850551, "psnr_scope": "mean_validation_view_mse", "ssim": 0.9561254183451334}, "points": 100000}

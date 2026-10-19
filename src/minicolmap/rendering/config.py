@@ -24,7 +24,12 @@ DEFAULT = {
     "nerf": {"levels_xyz": 6, "levels_dir": 4, "hidden_dim": 64},
     "gaussian": {"initial_scale": .01, "initial_opacity": .1,
                  "max_gaussians": 512, "densify_every": 0,
-                 "sh_degree": 3, "sh_degree_interval": 0, "backend": "reference"},
+                 "sh_degree": 3, "sh_degree_interval": 0, "backend": "reference",
+                 "optimizer_state": "preserve", "lr_mode": "uniform", "position_lr_final_ratio": .01,
+                 "loss": "mse", "ssim_weight": .2, "density_strategy": "legacy",
+                 "densify_start": 500, "densify_stop": 15000, "grow_grad2d": .0002,
+                 "split_scale": .01, "prune_scale": .1, "prune_screen_radius": .15,
+                 "min_opacity": .005, "opacity_reset_every": 3000},
 }
 
 
@@ -82,6 +87,18 @@ def resolve_render_config(overrides: dict | None = None) -> dict:
     number(result['gaussian'], 'densify_every', 0, 1000000, True)
     number(result['gaussian'], 'sh_degree', 0, 3, True)
     number(result['gaussian'], 'sh_degree_interval', 0, 1000000, True)
+    for key, choices in {'optimizer_state': ('preserve', 'reset'), 'lr_mode': ('uniform', 'grouped'),
+                         'loss': ('mse', 'l1_ssim'), 'density_strategy': ('legacy', 'adaptive')}.items():
+        if result['gaussian'][key] not in choices:
+            raise ValueError(f'gaussian.{key} 必须为 {choices}')
+    for key in ('position_lr_final_ratio', 'ssim_weight', 'min_opacity'):
+        number(result['gaussian'], key, 0, 1, open_low=key == 'position_lr_final_ratio')
+    for key in ('grow_grad2d', 'split_scale', 'prune_scale', 'prune_screen_radius'):
+        number(result['gaussian'], key, 0, 1000000, open_low=True)
+    for key in ('densify_start', 'densify_stop', 'opacity_reset_every'):
+        number(result['gaussian'], key, 0, 1000000, True)
+    if result['gaussian']['densify_stop'] <= result['gaussian']['densify_start']:
+        raise ValueError('densify_stop 必须大于 densify_start')
     if result['gaussian']['backend'] not in ('reference', 'gsplat'):
         raise ValueError("gaussian.backend 必须是 reference 或 gsplat")
     if (result['method'] == '3dgs' and result['gaussian']['backend'] == 'gsplat'

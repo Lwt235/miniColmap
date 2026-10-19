@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import numpy as np
@@ -73,6 +74,34 @@ def test_camera_center_and_frustum_preserve_world_to_camera_convention():
             homogeneous = model.cameras[1].K @ camera_point
             np.testing.assert_allclose(homogeneous[:2] / homogeneous[2], pixel, atol=1e-12)
     np.testing.assert_allclose(scene["cameras"][1]["center"], [1, 0, 0])
+
+
+@pytest.mark.parametrize('case', ['regular', 'zero_depth', 'empty'])
+def test_scene_batch_errors_match_details_without_expanding_all_tracks(monkeypatch, case):
+    from minicolmap.ui import scene as module
+    model = model_fixture()
+    if case == 'empty':
+        model.points.clear()
+    elif case == 'zero_depth':
+        model.points[17].xyz[2] = 0
+    else:
+        model.cameras[1].K[0, 1] = .7
+        for image in model.images.values():
+            image.keypoints = np.vstack((image.keypoints, image.keypoints + [2., -3.]))
+        model.points[41] = Point3D(41, [-.4, .2, 3.], [20, 40, 60], ((3, 1), (11, 1)))
+    expected = [module.point_details(model, point_id)['mean_error'] for point_id in sorted(model.points)]
+
+    def full_track_must_be_on_demand(*args):
+        pytest.fail('Scene overview must not construct complete observation dictionaries')
+
+    monkeypatch.setattr(module, 'point_details', full_track_must_be_on_demand)
+    result = module.make_scene(model, 'test', 'source', [])
+    for actual, reference in zip(result['points']['errors'], expected):
+        assert actual == pytest.approx(reference) if reference is not None else actual is None
+    assert result['points']['ids'] == sorted(model.points)
+    if case == 'zero_depth':
+        assert result['summary']['mean_reprojection_error_px'] is None
+        assert 'measurement_error' in result['summary']
 
 
 def test_imported_model_scene_tracks_artifacts_and_missing_photos(client, tmp_path):
@@ -373,7 +402,7 @@ def test_atomic_metadata_replace_retries_temporary_windows_locks(tmp_path, monke
     monkeypatch.setattr("minicolmap.ui.worker.time.sleep", sleeps.append)
     atomic_json(path, {"status": "new"})
     assert len(attempts) == 3
-    assert sleeps == [.01, .01]
+    assert sleeps == [.01, .02]
     assert json.loads(path.read_text(encoding="utf-8")) == {"status": "new"}
     assert not path.with_suffix(".json.tmp").exists()
 
@@ -394,5 +423,98 @@ def test_atomic_metadata_replace_propagates_persistent_lock(tmp_path, monkeypatc
     with pytest.raises(PermissionError, match="permanent"):
         atomic_json(path, {"status": "new"})
     assert len(attempts) == 21
-    assert len(sleeps) == 20 and sum(sleeps) == pytest.approx(.2)
+    assert len(sleeps) == 20 and sum(sleeps) == pytest.approx(1.75)
     assert path.read_text(encoding="utf-8") == original
+    assert not list(tmp_path.glob('*.tmp'))
+
+
+def test_worker_recovers_progress_after_locked_metadata_without_disabling_observer(tmp_path, monkeypatch, caplog):
+    from minicolmap.ui import worker
+    path = tmp_path / 'model.json'
+    save_reconstruction(model_fixture(), path)
+    model = json.loads(path.read_text())
+    metadata = tmp_path / 'state.json'
+    output = tmp_path / 'output'
+    atomic_json(metadata, {'id': 'test', 'output_path': str(output), 'dataset_path': 'ignored',
+                           'config': {}, 'status': 'running', 'stage': 'starting', 'snapshots': []})
+    original = worker.atomic_json
+    locked = False
+
+    def publish(target, value):
+        if target == metadata and locked:
+            raise PermissionError('Windows metadata reader denies replacement')
+        return original(target, value)
+
+    def reconstruct(dataset, target, config, *, on_event):
+        nonlocal locked
+        target.mkdir()
+        locked = True
+        on_event({'kind': 'progress', 'stage': 'incremental_mapping', 'completed': 114, 'total': 312})
+        on_event({'kind': 'progress', 'stage': 'incremental_mapping', 'completed': 115, 'total': 312})
+        locked = False
+        on_event({'kind': 'snapshot', 'stage': 'incremental_mapping', 'model': model})
+        on_event({'kind': 'progress', 'stage': 'incremental_mapping', 'completed': 116, 'total': 312})
+        return {'registered_images': 312, 'image_count': 312, 'point_count': 17459}
+
+    monkeypatch.setattr(worker, 'atomic_json', publish)
+    monkeypatch.setattr('minicolmap.pipeline.reconstruct', reconstruct)
+    assert worker.main(str(metadata)) == 0
+    record = json.loads(metadata.read_text(encoding='utf-8'))
+    assert record['status'] == 'completed' and record['completed'] == record['total'] == 312
+    assert len(record['warnings']) == 1
+    assert (output / 'ui/snapshots/snapshot-0001.json').is_file()
+    events = [json.loads(line) for line in (output / 'ui/events.jsonl').read_text(encoding='utf-8').splitlines()]
+    assert [event['kind'] for event in events] == ['snapshot', 'progress', 'complete']
+    assert events[1]['completed'] == 116
+    assert [event['seq'] for event in events] == [1, 2, 3]
+    assert 'disabling' not in caplog.text
+
+
+def test_atomic_metadata_uses_independent_temporary_files(tmp_path, monkeypatch):
+    path = tmp_path / 'run.json'
+    legacy = path.with_suffix('.json.tmp')
+    legacy.write_text('another writer', encoding='utf-8')
+    temporary_names = []
+    original = Path.replace
+
+    def replace(source, target):
+        temporary_names.append(source)
+        return original(source, target)
+
+    monkeypatch.setattr(Path, 'replace', replace)
+    atomic_json(path, {'version': 1})
+    atomic_json(path, {'version': 2})
+    assert len(set(temporary_names)) == 2
+    assert all(not temporary.exists() for temporary in temporary_names)
+    assert legacy.read_text() == 'another writer'
+    assert json.loads(path.read_text()) == {'version': 2}
+
+
+@pytest.mark.skipif(os.name != 'nt', reason='Windows native sharing semantics')
+def test_atomic_metadata_survives_windows_read_lock_beyond_old_retry_budget(tmp_path):
+    import ctypes
+    import threading
+    import time
+    from ctypes import wintypes
+
+    path = tmp_path / 'run.json'
+    atomic_json(path, {'version': 1})
+    kernel = ctypes.WinDLL('kernel32', use_last_error=True)
+    kernel.CreateFileW.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                  wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE]
+    kernel.CreateFileW.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    handle = kernel.CreateFileW(str(path), 0x80000000, 1, None, 3, 0x80, None)
+    assert handle != wintypes.HANDLE(-1).value
+
+    def reader():
+        time.sleep(.35)  # Previously 21 attempts exhausted their .2-second budget.
+        kernel.CloseHandle(handle)
+
+    thread = threading.Thread(target=reader)
+    thread.start()
+    try:
+        atomic_json(path, {'version': 2})
+    finally:
+        thread.join()
+    assert json.loads(path.read_text()) == {'version': 2}

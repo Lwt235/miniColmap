@@ -8,7 +8,8 @@ import path from 'node:path';
 const root = fileURLToPath(new URL('../../', import.meta.url));
 const base = 'http://127.0.0.1:8765';
 const runId = process.env.GSPLAT_RUN_ID || '695361f9be8042ed';
-const output = path.join(root, 'reports/2026-10-18-3dgs-resolution-live');
+const output =
+  process.env.MINICOLMAP_E2E_REPORT || path.join(root, 'reports/2026-10-18-3dgs-resolution-live');
 await mkdir(output, { recursive: true });
 const run = await (await fetch(`${base}/api/runs/${runId}`)).json();
 assert.equal(run.pipeline, '3dgs');
@@ -53,10 +54,10 @@ try {
   await page.addInitScript((id) => localStorage.setItem('minicolmap.lastRun', id), runId);
   await page.goto(base, { waitUntil: 'domcontentloaded' });
   await page.getByTestId('gaussian-live').waitFor();
-  await page.getByTestId('gaussian-live-toggle').click();
+  await page.getByTestId('gaussian-live-toggle').click({ timeout: 90000 });
   await waitForFrame();
   assert.match(await page.getByTestId('gaussian-live-status').innerText(), /gsplat.*cuda/);
-  report.checks.push('real 6570-Gaussian checkpoint loads once on CUDA');
+  report.checks.push('selected real Gaussian checkpoint loads once on CUDA');
   const canvas = page.getByTestId('gaussian-live-canvas');
   await canvas.scrollIntoViewIfNeeded();
   let box = await canvas.boundingBox();

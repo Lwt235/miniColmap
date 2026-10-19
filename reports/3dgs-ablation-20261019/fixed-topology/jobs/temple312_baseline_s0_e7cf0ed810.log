@@ -1,0 +1,7 @@
+{"job": "temple312_baseline_s0_e7cf0ed810", "step": 500, "total": 3000}
+{"job": "temple312_baseline_s0_e7cf0ed810", "step": 1000, "total": 3000}
+{"job": "temple312_baseline_s0_e7cf0ed810", "step": 1500, "total": 3000}
+{"job": "temple312_baseline_s0_e7cf0ed810", "step": 2000, "total": 3000}
+{"job": "temple312_baseline_s0_e7cf0ed810", "step": 2500, "total": 3000}
+{"job": "temple312_baseline_s0_e7cf0ed810", "step": 3000, "total": 3000}
+{"finished": "temple312_baseline_s0_e7cf0ed810", "metrics": {"step": 3000, "total": 3000, "loss": 0.0018840368138626218, "validation_mse": 0.002031291997991502, "psnr": 26.92227642325713, "psnr_scope": "mean_validation_view_mse", "ssim": 0.8209599018096924}, "points": 19648}

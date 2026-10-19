@@ -48,6 +48,39 @@ export function renderingSourceRequest(
 
 /** Early feedback only; the server remains authoritative for all configuration rules. */
 export function renderingConfigError(config: RenderingConfig): string | null {
+  const modes = {
+    optimizer_state: ['preserve', 'reset'],
+    lr_mode: ['uniform', 'grouped'],
+    density_strategy: ['legacy', 'adaptive'],
+    loss: ['mse', 'l1_ssim'],
+  };
+  for (const key of Object.keys(modes) as (keyof typeof modes)[]) {
+    const value = config.gaussian[key];
+    if (value !== undefined && !modes[key].includes(value)) return `高斯优化参数 ${key} 无效。`;
+  }
+  for (const key of ['ssim_weight', 'min_opacity', 'position_lr_final_ratio'] as const) {
+    const value = config.gaussian[key];
+    if (
+      value !== undefined &&
+      (!Number.isFinite(value) ||
+        value < 0 ||
+        value > 1 ||
+        (key === 'position_lr_final_ratio' && value === 0))
+    )
+      return `高斯优化参数 ${key} 超出范围。`;
+  }
+  for (const key of ['densify_start', 'densify_stop', 'opacity_reset_every'] as const) {
+    const value = config.gaussian[key];
+    if (value !== undefined && (!Number.isInteger(value) || value < 0 || value > 1000000))
+      return `高斯优化参数 ${key} 必须是非负整数。`;
+  }
+  if ((config.gaussian.densify_stop ?? 15000) <= (config.gaussian.densify_start ?? 500))
+    return '自适应增密结束步必须大于开始步。';
+  for (const key of ['grow_grad2d', 'split_scale', 'prune_scale', 'prune_screen_radius'] as const) {
+    const value = config.gaussian[key];
+    if (value !== undefined && (!Number.isFinite(value) || value <= 0))
+      return `高斯优化参数 ${key} 必须为正数。`;
+  }
   if (
     !Number.isInteger(config.gaussian.max_gaussians) ||
     config.gaussian.max_gaussians < 1 ||

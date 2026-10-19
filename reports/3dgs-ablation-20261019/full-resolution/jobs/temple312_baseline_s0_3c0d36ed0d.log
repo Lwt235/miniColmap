@@ -1,0 +1,21 @@
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 1000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 1500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 2000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 2500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 3000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 3500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 4000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 4500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 5000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 5500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 6000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 6500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 7000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 7500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 8000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 8500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 9000, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 9500, "total": 10000}
+{"job": "temple312_baseline_s0_3c0d36ed0d", "step": 10000, "total": 10000}
+{"finished": "temple312_baseline_s0_3c0d36ed0d", "metrics": {"step": 10000, "total": 10000, "loss": 0.003953002858906984, "validation_mse": 0.002183790225535631, "psnr": 26.60789082207177, "psnr_scope": "mean_validation_view_mse", "ssim": 0.7906150062878926}, "points": 24527}

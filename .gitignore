@@ -16,3 +16,6 @@ web/*.tsbuildinfo
 web/test-results/
 web/playwright-report/
 
+# Keep ablation evidence/configs/images in Git; large raw checkpoints stay local.
+reports/3dgs-ablation-*/**/runs/
+

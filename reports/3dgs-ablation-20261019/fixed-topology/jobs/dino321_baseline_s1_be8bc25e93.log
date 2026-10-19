@@ -1,0 +1,7 @@
+{"job": "dino321_baseline_s1_be8bc25e93", "step": 500, "total": 3000}
+{"job": "dino321_baseline_s1_be8bc25e93", "step": 1000, "total": 3000}
+{"job": "dino321_baseline_s1_be8bc25e93", "step": 1500, "total": 3000}
+{"job": "dino321_baseline_s1_be8bc25e93", "step": 2000, "total": 3000}
+{"job": "dino321_baseline_s1_be8bc25e93", "step": 2500, "total": 3000}
+{"job": "dino321_baseline_s1_be8bc25e93", "step": 3000, "total": 3000}
+{"finished": "dino321_baseline_s1_be8bc25e93", "metrics": {"step": 3000, "total": 3000, "loss": 0.0030677621252834797, "validation_mse": 0.0018426285678287968, "psnr": 27.345621998865028, "psnr_scope": "mean_validation_view_mse", "ssim": 0.8562105372548103}, "points": 3036}

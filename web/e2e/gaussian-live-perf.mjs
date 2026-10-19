@@ -1,14 +1,16 @@
 /** Sustained real UI rendering: 10s warmup + 60s measurement, no training. */
 import { chromium } from 'playwright';
 import assert from 'node:assert/strict';
-import { writeFile } from 'node:fs/promises';
+import { mkdir, writeFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
 
 const base = 'http://127.0.0.1:8765';
 const runId = process.env.GSPLAT_RUN_ID || '695361f9be8042ed';
 const root = fileURLToPath(new URL('../../', import.meta.url));
-const output = path.join(root, 'reports/2026-10-18-3dgs-resolution-live');
+const output =
+  process.env.MINICOLMAP_E2E_REPORT || path.join(root, 'reports/2026-10-18-3dgs-resolution-live');
+await mkdir(output, { recursive: true });
 const browser = await chromium.launch({ channel: 'msedge', headless: true });
 const page = await browser.newPage({ viewport: { width: 1600, height: 1000 } });
 const errors = [];
@@ -41,7 +43,7 @@ try {
     };
   }, runId);
   await page.goto(base, { waitUntil: 'domcontentloaded' });
-  await page.getByTestId('gaussian-live-toggle').click();
+  await page.getByTestId('gaussian-live-toggle').click({ timeout: 90000 });
   await page.waitForFunction(
     () =>
       Number(

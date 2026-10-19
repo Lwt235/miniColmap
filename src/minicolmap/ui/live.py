@@ -86,6 +86,8 @@ class LiveSessions:
             raise RuntimeError('实时高斯渲染正在占用 GPU，请先关闭实时视图再启动任务')
 
     def claim(self, run_id):
+        from .gpu_lease import ensure_experiment_idle
+        ensure_experiment_idle(self.store.root)
         with self.store.lock:
             self.ensure_idle()
             if any(run['status'] == 'running' for run in self.store.list_runs()):

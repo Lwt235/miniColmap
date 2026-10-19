@@ -255,6 +255,8 @@ class Store:
         return self.public(run)
 
     def start_rendering(self, source_run_id=None, config=None, *, dataset_id=None, photo_dataset_id=None):
+        from .gpu_lease import ensure_experiment_idle
+        ensure_experiment_idle(self.root)
         from .rendering import capabilities, validate_source, validate_model_images
         from ..rendering.config import resolve_render_config
         config = resolve_render_config(config)

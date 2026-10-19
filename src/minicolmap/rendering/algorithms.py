@@ -685,7 +685,7 @@ def splat_gaussians(means2d: Tensor, cov2d: Tensor, depths: Tensor,
 
 def densify_and_prune(state: GaussianState, gradient_norm: Tensor,
                       threshold: float, min_opacity: float,
-                      max_gaussians: int) -> GaussianState:
+                      max_gaussians: int, *, return_lineage: bool = False) -> GaussianState:
     """S5 (optional): deterministic topology change, separate from Adam updates.
 
     gradient_norm (G,) finite >=0; threshold finite >=0, min_opacity in [0,1],
@@ -698,8 +698,8 @@ def densify_and_prune(state: GaussianState, gradient_norm: Tensor,
     its normalized wxyz rotation. Original means stay fixed. Copy all other
     fields unchanged; no randomness or hidden gradient-based displacement.
     Return independent detached leaf tensors requiring gradients. Do not
-    mutate input state. The caller must rebuild its optimizer after topology
-    changes; the default teaching trainer leaves this hook disabled.
+    mutate input state. Optional return_lineage adds old source row indices and
+    an is_new mask, allowing the caller to migrate Adam state without resets.
     """
     torch = require_torch()
 
@@ -777,7 +777,12 @@ def densify_and_prune(state: GaussianState, gradient_norm: Tensor,
         else:
             result = retained
 
-    return {
+    revised = {
         key: value.detach().clone().requires_grad_(True)
         for key, value in result.items()
     }
+    if return_lineage:
+        sources = torch.cat((keep_indices, child_indices))
+        is_new = torch.arange(len(sources), device=sources.device) >= n_keep
+        return revised, sources, is_new
+    return revised

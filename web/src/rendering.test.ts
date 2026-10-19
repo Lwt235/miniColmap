@@ -28,6 +28,35 @@ const defaults: RenderingConfig = {
 };
 
 describe('rendering input contract', () => {
+  it('accepts legacy configs and validates independent optimization policies', () => {
+    expect(renderingConfigError(defaults)).toBeNull();
+    const revised = {
+      ...defaults,
+      gaussian: {
+        ...defaults.gaussian,
+        optimizer_state: 'preserve' as const,
+        lr_mode: 'grouped' as const,
+        loss: 'l1_ssim' as const,
+        density_strategy: 'adaptive' as const,
+      },
+    };
+    expect(renderingConfigError(revised)).toBeNull();
+    expect(
+      renderingConfigError({ ...revised, gaussian: { ...revised.gaussian, ssim_weight: 2 } }),
+    ).toContain('ssim_weight');
+    expect(
+      renderingConfigError({
+        ...revised,
+        gaussian: { ...revised.gaussian, densify_start: 100, densify_stop: 50 },
+      }),
+    ).toContain('结束步');
+    expect(
+      renderingConfigError({
+        ...revised,
+        gaussian: { ...revised.gaussian, opacity_reset_every: -1 },
+      }),
+    ).toContain('非负整数');
+  });
   it('accepts up to five million Gaussians and rejects invalid capacity settings', () => {
     for (const count of [1, 100001, 1000000, 5000000]) {
       expect(

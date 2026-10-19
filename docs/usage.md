@@ -64,6 +64,44 @@ data/dino/
 
 建议先运行 8/20/49 图。当前匹配穷举图像对，363 图有 65,703 对，且部分注册是可能结果。带官方位姿的清单没有点云，不能单独作为当前 3DGS 的初始化输入。
 
+Dino SfM 推荐在参数页导入 `configs/dino_sfm.json`：使用较低的图像对准入门槛和一致子轨迹策略，初始化与 PnP 仍保留原质量要求。新增“图像对最少内点”“初始化最少点数”和“轨迹冲突策略”可在界面分别调整；检查 `matching_graph.json` 可区分匹配断连与注册失败。
+
+本机已保存修复后的缓存建图结果 `dino363_repaired_cached_52058b`（321/363 相机、3,036 点），刷新历史即可查看或用于后续训练。它复用已有特征与 F-RANSAC 缓存，全部初始化和增量建图重新计算。CLI 从照片完整运行使用：
+
+```powershell
+.\.venv\Scripts\python.exe -m minicolmap run --dataset data/dino/dataset_all.json --output outputs/dino_repaired --config configs/dino_sfm.json
+```
+
+### Temple 312 图（Temple of the Dioskouroi）
+
+完整 Temple 与 47 图 TempleRing 是独立发布的数据集。将下载的照片放在 `data/temple/images/`，将 `temple_par.txt`、`temple_ang.txt` 和 `README.txt` 放在 `data/temple/reference/`，执行：
+
+```powershell
+.\.venv\Scripts\python.exe scripts/prepare_temple.py
+```
+
+脚本逐张检查 312 张原始 640×480 PNG、官方 K/R/t 与照片对应关系，并保存文件指纹；不缩放、裁剪、旋转或重复去畸变。派生文件已存在且内容相同时可重复执行，内容不同时拒绝覆盖。原始照片和标定保持不变。
+
+| 清单（均在 `data/temple/` 下） | 图数 | 用途 |
+| --- | ---: | --- |
+| `dataset.json` | 8 | 连续弧段 0040–0047，SfM 调试入口 |
+| `dataset_arc19.json` | 19 | 连续弧段 0040–0058，SfM 小规模实验 |
+| `dataset_band27.json` | 27 | 完整集首个采集带，包含拍摄间隔；不是 TempleRing |
+| `dataset_all.json` | 312 | 完整半球照片，供 SfM 重建 |
+| `dataset_posed_arc19.json` / `dataset_posed_band27.json` | 19 / 27 | 官方位姿，可直接训练 NeRF |
+| `dataset_posed_all.json` | 312 | 完整官方位姿，可直接训练 NeRF |
+
+刷新工作台后会自动发现这些清单。**NeRF** 在“含位姿的照片集”入口选择 `temple / dataset_posed_all` 即可，无需先建点云。**3DGS** 先在 SfM 中选择 `temple / dataset_all` 完成重建，再在训练页选择该重建结果及原图。带位姿清单没有点云，不能直接作为当前 3DGS 的初始化模型。
+
+本组 K 为 `fx=1520.4、fy=1525.9、cx=302.32、cy=246.87`，单位为原图像素；直接使用生成清单即可。官方投影约定为 `K[R|t]`，倒置照片对应真实相机姿态，应保留原样。完整集有 48,516 个穷举图像对，建议先通过 8/19 图检查流程，再启动完整重建。上述准备只验证输入可加载，不代表已完成重建或训练画质验收。
+
+```powershell
+# 直接训练 NeRF；通用配置用于检查流程，训练预算与画质参数在界面继续调整
+.\.venv\Scripts\python.exe -m minicolmap train --method nerf --dataset data/temple/dataset_posed_all.json --output outputs/temple312_nerf --config configs/nerf_gpu.json
+```
+
+官方数据格式与预处理说明见 [Middlebury 数据页](https://vision.middlebury.edu/mview/data/)。`configs/nerf_temple_quality.json` 的近远裁剪范围源自此前 TempleRing 的相机归一化，不能未经检查套用于本组官方位姿输入。
+
 ## 工作台
 
 ```powershell
@@ -98,6 +136,8 @@ data/dino/
 NeRF 的自定义视角渲染为按需计算，未提供与 3DGS 相同的连续 CUDA 实时会话。3DGS 的普通“渲染此相机”与自由视角实时链路是两个入口；前者为兼容查看使用 CPU 参考渲染，后者使用 GPU/gsplat。
 
 当前同时执行一个重建/训练任务。取消会终止计算进程并保留已有诊断与最后有效快照，不提供训练暂停续跑。刷新页面可重新连接已有任务。历史刷新会清除输出目录已删除的索引；保留仍存在的失败或未完成结果，不删除模型和照片。
+
+3DGS 的优化状态、分组学习率、密度策略和损失可在参数面板分别设置；建议从“保留 Adam 动量”开始。受控实验的配置、结果和复现脚本见 [3DGS 优化与消融](3dgs-optimization-ablation.md)。离线消融脚本持有 GPU 实验预约期间，工作台拒绝启动新的渲染训练或实时会话；实验进程结束后自动解除，普通照片/点云查看仍可使用。
 
 ## 命令行
 

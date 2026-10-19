@@ -1,0 +1,28 @@
+{
+  "run_id": "result-342451ad6e98fed3",
+  "checks": [
+    "selected real Gaussian checkpoint loads once on CUDA",
+    "left drag rotates and produces new RGB frames",
+    "right drag pans and produces new RGB frames",
+    "mouse wheel zooms the actual Gaussian render",
+    "frames continue displaying during continuous drag",
+    "saved camera alignment uses its true pose",
+    "scene fit requests a free camera",
+    "output resolution and window resize update K and frame dimensions",
+    "manual reconnect reloads GPU session and returns fresh frames",
+    "close releases session and permits reopening"
+  ],
+  "metrics": {
+    "testid": "gaussian-live-metrics",
+    "frameCount": "83",
+    "lastSeq": "83",
+    "fps": "14.259523324549294",
+    "latencyMs": "36.099999997764826"
+  },
+  "dimensions": [
+    862,
+    485
+  ],
+  "status": "passed",
+  "page_errors": []
+}

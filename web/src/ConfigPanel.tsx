@@ -76,10 +76,18 @@ const groups: {
         min: 1,
       },
       {
-        key: 'min_inliers',
-        label: '最少内点数',
+        key: 'min_pair_inliers',
+        label: '图像对最少内点',
         unit: '点',
-        help: '图像对准入和初始化最终保留点的下限。',
+        help: '通过几何验证的图像对进入匹配图的门槛；可以低于初始化点数。',
+        step: 1,
+        min: 8,
+      },
+      {
+        key: 'min_inliers',
+        label: '初始化最少点数',
+        unit: '点',
+        help: '初始化最终有效三维点的下限；未单独设置图像对门槛时也用于图像对准入。',
         step: 1,
         min: 8,
       },
@@ -250,7 +258,9 @@ export default function ConfigPanel({
                   max={field.max}
                   aria-label={field.label}
                   value={Number(
-                    (config[group.key] as unknown as Record<string, unknown>)[field.key],
+                    field.key === 'min_pair_inliers'
+                      ? (config.geometry.min_pair_inliers ?? config.geometry.min_inliers)
+                      : (config[group.key] as unknown as Record<string, unknown>)[field.key],
                   )}
                   onChange={(e) => change(group.key, field.key, +e.target.value)}
                 />
@@ -260,6 +270,22 @@ export default function ConfigPanel({
               <p className="form-note">
                 自适应 RANSAC：置信度不是内点比例；最少采样次数超过硬上限时，按上限执行。
               </p>
+            )}
+            {group.key === 'mapping' && (
+              <label
+                className="number-field"
+                title="拆分模式优先保留多视图一致的子轨迹，阻止同图不同特征合并。"
+              >
+                <span>轨迹冲突策略</span>
+                <select
+                  aria-label="轨迹冲突策略"
+                  value={config.mapping.track_conflict_policy ?? 'reject'}
+                  onChange={(e) => change('mapping', 'track_conflict_policy', e.target.value)}
+                >
+                  <option value="reject">整组丢弃（原有策略）</option>
+                  <option value="split">保留一致子轨迹</option>
+                </select>
+              </label>
             )}
             {group.key === 'bundle_adjustment' && (
               <label className="number-field">

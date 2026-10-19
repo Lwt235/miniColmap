@@ -93,6 +93,26 @@ def test_observer_counts_snapshots_and_original_result_compatibility(wired_scene
     assert events[-1] == {'kind': 'stage', 'stage': 'done', 'status': 'completed'}
 
 
+def test_sparse_pair_gate_is_independent_from_initial_point_gate(wired_scene, tmp_path, monkeypatch):
+    manifest, settings = wired_scene
+    settings['geometry'].update(min_inliers=30, min_pair_inliers=8)
+    original = pipeline.initialize_map
+    received = []
+
+    def inspect(model, pairs, tracks, config, colors, **kwargs):
+        received.append((len(pairs), config['geometry']['min_inliers']))
+        return original(model, pairs, tracks, config, colors, **kwargs)
+
+    monkeypatch.setattr(pipeline, 'initialize_map', inspect)
+    output = tmp_path / 'sparse-bridge'
+    pipeline.reconstruct(manifest, output, settings)
+    assert received == [(3, 30)]
+    graph = json.loads((output / 'matching_graph.json').read_text())
+    assert graph['pair_min_inliers'] == 8
+    assert graph['seed_component_size'] == 3
+    assert graph['unreachable_image_ids'] == []
+
+
 def test_cli_path_does_not_serialize_intermediate_snapshots(wired_scene, tmp_path, monkeypatch):
     def forbidden(model):
         raise AssertionError('Snapshot serializer must stay unused without an observer')

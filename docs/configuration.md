@@ -15,11 +15,13 @@ SfM 与新视图训练使用独立 JSON 配置。CLI 和界面复用同一校验
 | `geometry.max_trials` | 2000 | RANSAC 硬迭代上限，正整数 |
 | `geometry.confidence` | 0.99 | 自适应 RANSAC 目标成功概率，0–1 开区间 |
 | `geometry.min_trials` | 20 | 最小采样预算，正整数；硬上限优先 |
-| `geometry.min_inliers` | 30 | 几何验证的最低内点数及初始化最低有效点数，整数 ≥8 |
+| `geometry.min_inliers` | 30 | 初始化最低有效点数，整数 ≥8；未单独设置图像对门槛时也用于图像对准入 |
+| `geometry.min_pair_inliers` | 跟随 `min_inliers` | 可选的图像对准入门槛，整数 ≥8；允许弱连接进入轨迹图而不降低初始化要求 |
 | `mapping.min_pnp_points` | 15 | 唯一 2D–3D 输入对应及保留内点门槛，整数 ≥6 |
 | `mapping.pnp_threshold_px` | 3.0 | PnP-RANSAC 门槛，正数 px |
 | `mapping.min_angle_deg` | 1.5 | 最低三角化视差角，0–180 开区间，度 |
 | `mapping.max_reprojection_px` | 3.0 | 新点及新增观测的重投影误差门槛，正数 px |
+| `mapping.track_conflict_policy` | reject | 可选的 `reject`（整组丢弃）或 `split`（保留一致子轨迹），旧配置保持原行为 |
 | `bundle_adjustment.enabled` | false | 是否执行最终全局 BA；两视图初始化精化单独执行 |
 | `bundle_adjustment.max_nfev` | 50 | 求解器函数评估预算，正整数 |
 | `bundle_adjustment.loss` | huber | `linear`、`huber` 或 `soft_l1` |
@@ -35,6 +37,8 @@ SfM 与新视图训练使用独立 JSON 配置。CLI 和界面复用同一校验
 ```
 
 模板：`configs/default.json`、`configs/temple_ring_no_ba.json`、`configs/temple_ring_ba.json`。
+
+`configs/dino_sfm.json` 将图像对门槛设为 20、初始化仍设为 30，并启用 `split`；PnP 仍至少 15 点、最大重投影误差仍为 3 px。拆分策略优先处理有观察三角支持的边，再按图像对支持数和固定 ID 顺序处理，阻止同图不同特征合并。它不保证所有保留匹配都正确，后续几何检查仍然执行。
 
 ## NeRF / 3DGS 参数
 
@@ -82,6 +86,20 @@ SfM 与新视图训练使用独立 JSON 配置。CLI 和界面复用同一校验
 | `gaussian.sh_degree` | 3 | 最大实球谐阶数，整数 0–3 |
 | `gaussian.sh_degree_interval` | 0 | 球谐升阶间隔，整数 0–1,000,000；0 立即启用最大阶数 |
 | `gaussian.backend` | reference | `reference` 或 `gsplat`；后者要求 CUDA |
+| `gaussian.optimizer_state` | preserve | 拓扑变化时迁移 Adam；`reset` 为历史整体重置控制组 |
+| `gaussian.lr_mode` | uniform | `uniform` 或 `grouped`（五类参数分组、位置衰减） |
+| `gaussian.position_lr_final_ratio` | 0.01 | 分组策略的位置最终/初始学习率比例，0–1，排除 0 |
+| `gaussian.loss` / `ssim_weight` | mse / 0.2 | `mse` 或 `l1_ssim`；后者 SSIM 权重为 0–1 |
+| `gaussian.density_strategy` | legacy | 原中心梯度或 `adaptive` 累计可见屏幕梯度策略 |
+| `gaussian.densify_start` / `densify_stop` | 500 / 15000 | 自适应增密窗口，整数；结束严格大于开始 |
+| `gaussian.grow_grad2d` | 0.0002 | 累计归一化屏幕梯度阈值，正数 |
+| `gaussian.split_scale` | 0.01 | 小高斯克隆/大高斯分裂界限，归一化尺度，正数 |
+| `gaussian.prune_scale` | 0.1 | 自适应最大三维尺度，正数 |
+| `gaussian.prune_screen_radius` | 0.15 | 自适应最大屏幕半径/图像长边，正数 |
+| `gaussian.min_opacity` | 0.005 | 密度剪枝透明度下限，0–1 |
+| `gaussian.opacity_reset_every` | 3000 | 自适应透明度重置间隔，整数 0–1,000,000；0 关闭；距训练/增密窗口结束不超过一轮训练视角时跳过 |
+
+各优化开关独立，历史配置缺失字段由后端补默认；训练器的改动与消融结果见 [3DGS 优化说明](3dgs-optimization-ablation.md)。SH DC 与高阶系数当前仍共用一组学习率。
 
 `sh_degree_interval>0` 时，活跃阶数从 0 开始，按间隔升阶，直至配置的最大阶数。参考后端的中间量随高斯数和像素数增长；百万规模不应使用逐像素 reference 训练。容量校验通过不保证显存足够，也不自动生成更多高斯。
 
@@ -143,6 +161,7 @@ SfM 与新视图训练使用独立 JSON 配置。CLI 和界面复用同一校验
 | `model.json`、`points.ply`、`sparse/0/*.txt` | SfM 地图、点云、COLMAP 文本模型 |
 | `summary.json`、`config.json`、`run_status.json` | 结果汇总、完整配置和状态 |
 | `timings.json`、`pairs.json`、`initialization.json`、`ba.json` | 阶段耗时、匹配/初始化与 BA 诊断；按运行阶段产生 |
+| `matching_graph.json` | 准入图像对的连通分量、初始地图可达数量、无法连接的图像 ID 与轨迹策略 |
 | `ui/snapshots/`、事件与工作进程日志 | 工作台真实中间场景及诊断 |
 | `checkpoint.pt` | NeRF 网络或高斯张量、配置、步数、帧、归一化与训练/验证划分 |
 | `gaussians.npz` | 3DGS 世界坐标中心、协方差、尺度、四元数、SH 与透明度 |

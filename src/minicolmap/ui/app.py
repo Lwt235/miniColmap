@@ -9,6 +9,7 @@ import uuid
 import zipfile
 from contextlib import asynccontextmanager
 from pathlib import Path, PureWindowsPath
+from urllib.parse import quote
 
 import cv2
 import numpy as np
@@ -431,6 +432,12 @@ def create_app(project_root: Path | None = None):
                 or candidate.suffix.lower() not in {'.json', '.ply', '.txt', '.png', '.npz', '.pt', '.log'}
                 or not candidate.is_file()):
             raise KeyError("结果文件不存在")
+        if candidate.suffix.lower() == '.png':
+            # Close the file before sending to a potentially slow HTTP reader.
+            # FileResponse can otherwise hold a Windows delete-sharing lock for
+            # the lifetime of the response while the worker publishes a preview.
+            return Response(candidate.read_bytes(), media_type='image/png', headers={
+                'Content-Disposition': f"attachment; filename*=utf-8''{quote(candidate.name)}"})
         return FileResponse(candidate, filename=candidate.name)
 
     static = Path(__file__).parent / "static"

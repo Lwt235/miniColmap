@@ -11,6 +11,7 @@ import math
 import shutil
 import time
 import uuid
+from contextlib import suppress
 from pathlib import Path
 
 import cv2
@@ -20,6 +21,9 @@ from . import algorithms as learner
 from .config import resolve_render_config
 from .data import load_training_scene, load_posed_dataset
 from .gaussian_backend import active_sh_degree, rasterize_gsplat
+from .gaussian_training import (DensityStatistics, adaptive_topology, make_optimizer,
+                               photometric_loss, replace_topology, reset_opacity,
+                               ssim_image, update_learning_rates)
 
 
 def _torch(device='cpu'):
@@ -62,9 +66,21 @@ def _write_image(path, rgb):
     ok, encoded = cv2.imencode('.png', bgr)
     if not ok:
         raise OSError('无法编码训练预览')
-    temporary = path.with_suffix('.tmp')
-    temporary.write_bytes(encoded.tobytes())
-    _replace(temporary, path)
+    # Independent offline requests must not share the same temporary filename.
+    temporary = path.with_name(f'{path.name}.{uuid.uuid4().hex}.tmp')
+    try:
+        temporary.write_bytes(encoded.tobytes())
+        _replace(temporary, path)
+    finally:
+        with suppress(OSError):
+            temporary.unlink(missing_ok=True)
+
+
+def _write_reference_image(path, rgb):
+    """Reference photos are immutable within a run; never replace a reader's file."""
+    path = Path(path)
+    if not path.is_file():
+        _write_image(path, rgb)
 
 
 def _tensor(value, torch, device):
@@ -122,7 +138,7 @@ def _training_ray_pool(scene, torch, device):
     return torch.cat(origins), torch.cat(directions), torch.cat(targets)
 
 
-def _render(network, state, frame, config, torch, device, *, sh_degree=None):
+def _render(network, state, frame, config, torch, device, *, sh_degree=None, training_info=None):
     K, R, t = [_tensor(frame[key], torch, device) for key in ('K', 'R', 't')]
     width, height = frame['width'], frame['height']
     if config['method'] == 'nerf':
@@ -142,10 +158,19 @@ def _render(network, state, frame, config, torch, device, *, sh_degree=None):
         config['gaussian']['sh_degree'] if sh_degree is None else sh_degree)
     opacities = state['opacity_logits'].sigmoid().reshape(-1)[front]
     background = _background(config, torch, device)
+    if training_info is not None:
+        training_info.update(indices=front.nonzero(as_tuple=True)[0], width=width, height=height)
     if config['gaussian']['backend'] == 'gsplat':
+        if training_info is not None:
+            return rasterize_gsplat(means, covariance, colors, opacities, K, R, t, width, height, background,
+                                    training_info=training_info)
         return rasterize_gsplat(means, covariance, colors, opacities, K, R, t, width, height, background)
     projected = learner.project_gaussians(means, covariance, K, R, t)
     visible = projected['visible']
+    if training_info is not None:
+        projected['means2d'].retain_grad()
+        radius = torch.linalg.eigvalsh(projected['cov2d']).amax(-1).clamp_min(0).sqrt() * 3
+        training_info.update(means2d=projected['means2d'], radii=radius * visible)
     return learner.splat_gaussians(
         projected['means2d'][visible], projected['cov2d'][visible], projected['depths'][visible],
         colors[visible], opacities[visible], width, height, background)['rgb']
@@ -198,6 +223,8 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
     if source_model_path is None and config['method'] == '3dgs':
         raise ValueError('3DGS 需要已有点云模型，请先构建或加载 model.json')
     torch = _torch(config['device'])
+    if config['device'] == 'cuda':
+        torch.cuda.reset_peak_memory_stats()
     output = Path(output)
     output.mkdir(parents=True, exist_ok=True)
     if any((output / name).exists() for name in ('checkpoint.pt', 'summary.json', 'training.json')):
@@ -256,7 +283,10 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
                 config['gaussian']['sh_degree'])
             state = {k: torch.nn.Parameter(v.detach().clone()) for k, v in initial.items()}
             parameters = list(state.values())
-        optimizer = torch.optim.Adam(parameters, lr=config['learning_rate'])
+        optimizer = (make_optimizer(state, config) if state is not None else
+                     torch.optim.Adam(parameters, lr=config['learning_rate']))
+        density = DensityStatistics(state) if state is not None and config['gaussian']['density_strategy'] == 'adaptive' else None
+        density_records = []
         ray_pool = (_training_ray_pool(scene, torch, device)
                     if network is not None and config.get('ray_sampling') == 'all_images' else None)
         warned_empty_views = set()
@@ -284,7 +314,10 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
                 if frame is None:
                     raise ValueError('所有训练视角都没有正深度高斯；检查位姿、点云与初始化')
             target = None if frame is None else _tensor(frame.rgb, torch, device)
+            if state is not None:
+                update_learning_rates(optimizer, config, step)
             optimizer.zero_grad(set_to_none=True)
+            training_info = {} if density is not None and config['gaussian']['densify_start'] <= step < config['gaussian']['densify_stop'] else None
             if ray_pool is not None:
                 indices = torch.as_tensor(rng.integers(0, len(ray_pool[2]),
                     size=config['rays_per_batch']), device=device)
@@ -300,29 +333,50 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
                     training=True)['rgb']
                 loss = (prediction - target.reshape(-1, 3)[indices]).square().mean()
             else:
-                prediction = _render(None, state, _frame_record(frame), config, torch, device,
-                                     sh_degree=active_sh_degree(config, step))
-                loss = (prediction - target).square().mean()
+                render_options = {'sh_degree': active_sh_degree(config, step)}
+                if training_info is not None:
+                    render_options['training_info'] = training_info
+                prediction = _render(None, state, _frame_record(frame), config, torch, device, **render_options)
+                loss = photometric_loss(prediction, target, config)
             if not torch.isfinite(loss):
                 raise ValueError('训练损失不是有限数；检查 TODO 数值稳定性')
             loss.backward()
+            if training_info is not None:
+                density.accumulate(training_info)
             if not any(p.grad is not None for p in parameters):
                 raise ValueError('渲染计算图未连接到可训练参数')
             if any(p.grad is not None and not torch.isfinite(p.grad).all() for p in parameters):
                 raise ValueError('训练梯度出现 NaN/Inf')
             optimizer.step()
             if state is not None and config['gaussian']['densify_every'] and step % config['gaussian']['densify_every'] == 0:
-                gradients = state['means'].grad.norm(dim=-1) if state['means'].grad is not None else torch.zeros(len(state['means']), device=device)
-                revised = learner.densify_and_prune(state, gradients, 1e-3, .005, config['gaussian']['max_gaussians'])
-                if not len(revised['means']):
-                    raise ValueError('密度控制移除了全部高斯')
-                state = {k: torch.nn.Parameter(v.detach().clone()) for k, v in revised.items()}
-                parameters = list(state.values())
-                optimizer = torch.optim.Adam(parameters, lr=config['learning_rate'])
+                options = config['gaussian']
+                before_count = len(state['means'])
+                topology = None
+                if density is None:
+                    gradients = state['means'].grad.norm(dim=-1) if state['means'].grad is not None else torch.zeros(len(state['means']), device=device)
+                    topology = learner.densify_and_prune(state, gradients, 1e-3, options['min_opacity'],
+                                                        options['max_gaussians'], return_lineage=True)
+                elif (options['densify_start'] <= step < options['densify_stop'] and
+                      (not options['opacity_reset_every'] or step % options['opacity_reset_every'] >= len(scene.train_ids))):
+                    topology = adaptive_topology(state, density, options)
+                if topology is not None:
+                    revised, sources, is_new = topology
+                    if not len(revised['means']):
+                        raise ValueError('密度控制移除了全部高斯')
+                    state, optimizer = replace_topology(state, revised, optimizer, sources, is_new, config)
+                    parameters = list(state.values())
+                    density_records.append({'step': step, 'before': before_count, 'after': len(state['means']),
+                                            'new': int(is_new.sum()), 'optimizer_state': options['optimizer_state']})
+                if density is not None:
+                    density.reset(state)
+            if (density is not None and config['gaussian']['opacity_reset_every']
+                and step % config['gaussian']['opacity_reset_every'] == 0
+                and step + len(scene.train_ids) < min(config['gaussian']['densify_stop'], config['iterations'])):
+                reset_opacity(state, optimizer)
             metrics.update(step=step, total=config['iterations'], loss=float(loss.detach()))
             records.append(dict(metrics))
             event('training', kind='progress', completed=step, total=config['iterations'], metrics=dict(metrics),
-                  message=f"训练 {step}/{config['iterations']}，MSE {metrics['loss']:.6g}")
+                  message=f"训练 {step}/{config['iterations']}，loss {metrics['loss']:.6g}")
             if step % config['preview_every'] == 0 or step == config['iterations']:
                 validation = scene.frames[scene.validation_ids[0]]
                 with torch.no_grad():
@@ -336,24 +390,32 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
                 relative = f'previews/step-{step:06d}.png'
                 reference = f'previews/reference-{validation.image_id}.png'
                 _write_image(output / relative, rgb.detach().cpu().numpy())
-                _write_image(output / reference, validation.rgb)
+                _write_reference_image(output / reference, validation.rgb)
                 preview = {'path': relative, 'reference_path': reference, 'image_id': validation.image_id, 'step': step}
                 previews.append(preview)
                 _save_checkpoint(output, config, scene, network, state, step, torch)
                 _write_json(output / 'training.json', {'metrics': records, 'previews': previews})
                 event('validation', kind='preview', metrics=dict(metrics), preview=preview,
                       message='保存真实验证视图与权重')
-        errors = []
+        errors, per_view = [], []
         with torch.no_grad():
             for image_id in scene.validation_ids:
                 frame = scene.frames[image_id]
                 result = _render(network, state, _frame_record(frame), config, torch, device,
                                  sh_degree=active_sh_degree(config, config['iterations']))
-                errors.append(float((result - _tensor(frame.rgb, torch, device)).square().mean()))
+                target = _tensor(frame.rgb, torch, device)
+                error = float((result - target).square().mean())
+                errors.append(error)
+                per_view.append({'image_id': image_id, 'mse': error,
+                                 'psnr': -10 * math.log10(max(error, 1e-12)),
+                                 'ssim': float(ssim_image(result, target))})
+                _write_image(output / f'validation/image-{image_id}.png', result.detach().cpu().numpy())
+                _write_reference_image(output / f'previews/reference-{image_id}.png', frame.rgb)
         validation_mse = float(np.mean(errors))
         if not math.isfinite(validation_mse):
             raise ValueError('最终验证误差不是有限数')
         metrics.update(validation_mse=validation_mse, psnr=-10 * math.log10(max(validation_mse, 1e-12)),
+                       ssim=float(np.mean([item['ssim'] for item in per_view])),
                        psnr_scope='mean_validation_view_mse')
         summary = {'pipeline': config['method'], 'step': config['iterations'],
                    'image_count': len(scene.frames), 'registered_images': len(scene.frames),
@@ -361,6 +423,11 @@ def train(source_model_path, dataset_path, output, config=None, *, on_event=None
                    'metrics': metrics, 'previews': previews, 'checkpoint': 'checkpoint.pt',
                    'elapsed_seconds': time.monotonic() - started,
                    'train_ids': scene.train_ids, 'validation_ids': scene.validation_ids}
+        summary['per_view_metrics'] = per_view
+        summary['peak_cuda_allocated_mb'] = torch.cuda.max_memory_allocated() / 2**20 if device == 'cuda' else None
+        summary['peak_cuda_reserved_mb'] = torch.cuda.max_memory_reserved() / 2**20 if device == 'cuda' else None
+        summary['photometric_loss'] = config['gaussian']['loss'] if state is not None else 'mse'
+        _write_json(output / 'density.json', density_records)
         _write_json(output / 'summary.json', summary)
         status['status'] = 'completed'
         event('done', kind='complete', summary=summary)
@@ -454,7 +521,7 @@ def render_checkpoint(output, *, camera=None, image_id=None):
             try:
                 status = json.loads((output / 'run_status.json').read_text(encoding='utf-8'))
                 scene = load_training_scene(output / 'source_model.json', status['dataset'], config)
-                _write_image(output / reference, scene.frames[image_id].rgb)
+                _write_reference_image(output / reference, scene.frames[image_id].rgb)
             except (OSError, ValueError, KeyError):
                 pass
         if (output / reference).exists():

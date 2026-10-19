@@ -1,0 +1,15 @@
+{
+  "python": "3.12.7",
+  "platform": "Windows-11-10.0.26200-SP0",
+  "libraries": {
+    "torch": "2.7.1+cu128",
+    "gsplat": "1.5.3",
+    "numpy": "2.5.4",
+    "scipy": "1.18.1",
+    "fastapi": "0.143.2",
+    "pytest": "9.1.1",
+    "opencv-python-headless": "4.14.0.94"
+  },
+  "nvidia_smi": "NVIDIA GeForce RTX 4060 Laptop GPU, 576.80, 8188 MiB, [N/A]",
+  "measurement_note": "User closed Rebirth Pub. Mini-COLMAP live rendering stopped. Sequential single-GPU jobs; elapsed includes previews/final validation; excludes SfM and separate render benchmark."
+}

@@ -45,7 +45,7 @@ def gsplat_arguments(means, covariances, colors, opacities, K, R, t,
 
 
 def rasterize_gsplat(means, covariances, colors, opacities, K, R, t,
-                     width, height, background):
+                     width, height, background, *, training_info=None):
     if not means.is_cuda or str(means.dtype) != 'torch.float32':
         raise ValueError('gsplat 后端需要 CUDA float32 张量')
     if len(means) == 0:
@@ -65,5 +65,9 @@ def rasterize_gsplat(means, covariances, colors, opacities, K, R, t,
                            '见 docs/usage.md')
     arguments = gsplat_arguments(means, covariances, colors, opacities, K, R, t,
                                 width, height, background)
-    rgb, _, _ = rasterization(**arguments)
+    rgb, _, info = rasterization(**arguments)
+    if training_info is not None:
+        means2d = info['means2d']
+        means2d.retain_grad()
+        training_info.update(means2d=means2d, radii=info['radii'])
     return rgb[0]

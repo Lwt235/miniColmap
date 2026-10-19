@@ -86,6 +86,34 @@ def test_view_split_uses_stable_ids_not_positions_and_preserves_holdout():
         split_views([3], 4)
 
 
+@pytest.mark.parametrize('iterations', [6, 8])
+def test_short_adaptive_training_leaves_a_view_cycle_after_opacity_reset(appearance_scene, monkeypatch, iterations):
+    pytest.importorskip('torch')
+    from minicolmap.rendering import pipeline
+    original = pipeline.reset_opacity
+    last_step, resets = [0], []
+
+    def record_reset(state, optimizer):
+        resets.append(last_step[0] + 1)
+        original(state, optimizer)
+
+    def observe(event):
+        if event.get('kind') == 'progress':
+            last_step[0] = event['completed']
+
+    monkeypatch.setattr(pipeline, 'reset_opacity', record_reset)
+    model, dataset, _ = appearance_scene
+    summary = pipeline.train(model, dataset, model.parent / f'short-{iterations}', {
+        'method': '3dgs', 'iterations': iterations, 'image_downscale': 2, 'background': 'black',
+        'holdout_every': 2, 'preview_every': iterations,
+        'gaussian': {'backend': 'reference', 'density_strategy': 'adaptive',
+                     'densify_every': 0, 'densify_start': 0, 'densify_stop': 100,
+                     'opacity_reset_every': 3}}, on_event=observe)
+    assert summary['train_ids'] == [3, 19]
+    assert resets == [3]  # Step 6 must not erase opacity just before completion.
+    assert summary['step'] == iterations
+
+
 def test_resize_intrinsics_follow_half_pixel_mapping_including_skew():
     K = np.array([[10., .7, 3], [0, 12, 2], [0, 0, 1]])
     scaled = scaled_intrinsics(K, (8, 6), (3, 2))
@@ -211,6 +239,31 @@ def test_training_checkpoint_preview_and_camera_render_protocol(appearance_scene
         train(model_path, dataset_path, output, config)
     with pytest.raises(ValueError):
         render_checkpoint(output, camera={'width': 513, 'height': 1, 'K': np.eye(3), 'R': np.eye(3), 't': [0, 0, 0]})
+
+
+@pytest.mark.parametrize('method', ['nerf', '3dgs'])
+def test_training_publishes_fixed_reference_once_across_preview_intervals(appearance_scene, monkeypatch, method):
+    install_protocol_doubles(monkeypatch, method)
+    from minicolmap.rendering import pipeline
+    model_path, dataset_path, _ = appearance_scene
+    published = []
+    original = pipeline._write_image
+
+    def writer(path, rgb):
+        if path.name.startswith('reference-'):
+            if path.exists():
+                raise PermissionError('The HTTP reader keeps the reference open')
+            published.append(path)
+        return original(path, rgb)
+
+    monkeypatch.setattr(pipeline, '_write_image', writer)
+    output = model_path.parent / f'locked-reference-{method}'
+    settings = resolve_render_config({'method': method, 'iterations': 3, 'preview_every': 1,
+                                      'image_downscale': 1, 'rays_per_batch': 3})
+    summary = pipeline.train(model_path, dataset_path, output, settings)
+    assert summary['step'] == 3 and len(summary['previews']) == 3
+    assert len(published) == 1
+    assert json.loads((output / 'run_status.json').read_text())['status'] == 'completed'
 
 
 def test_unfinished_math_is_persisted_as_todo_not_success(appearance_scene, monkeypatch):
